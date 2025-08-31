@@ -1,19 +1,108 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useMutation, useQueryClient } from 'react-query';
 import { Button } from '../ui/Button';
-import { Loader2, Sparkles, Settings } from 'lucide-react';
+import { Loader2, Sparkles, Settings, Square } from 'lucide-react';
 import { api, GenerateImageRequest } from '../../lib/api';
 
 export const ImageGenerator: React.FC = () => {
   const [prompt, setPrompt] = useState('');
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [settings, setSettings] = useState({
+  
+  // Aspect ratio presets
+  type AspectRatioPreset = {
+    name: string;
+    ratio: number; // width/height
+    label: string;
+    shape?: React.CSSProperties; // Optional shape styling
+  };
+  
+  const aspectRatioPresets: AspectRatioPreset[] = [
+    {
+      name: 'square',
+      ratio: 1/1,
+      label: 'Square (1:1)',
+      shape: { width: '16px', height: '16px' }
+    },
+    {
+      name: 'standard',
+      ratio: 4/3,
+      label: 'Standard (4:3)',
+      shape: { width: '16px', height: '12px' }
+    },
+    {
+      name: 'widescreen',
+      ratio: 16/9,
+      label: 'Widescreen (16:9)',
+      shape: { width: '16px', height: '9px' }
+    },
+    {
+      name: 'portrait',
+      ratio: 3/4,
+      label: 'Portrait (3:4)',
+      shape: { width: '12px', height: '16px' }
+    },
+    {
+      name: 'landscape',
+      ratio: 3/2,
+      label: 'Landscape (3:2)',
+      shape: { width: '16px', height: '10.67px' }
+    },
+    {
+      name: 'presentation',
+      ratio: 16/10,
+      label: 'Presentation (16:10)',
+      shape: { width: '16px', height: '10px' }
+    },
+    {
+      name: 'custom',
+      ratio: 0,
+      label: 'Custom'
+    },
+  ];
+  
+  const [selectedAspectRatio, setSelectedAspectRatio] = useState<string>('square');
+  const [isCustomRatio, setIsCustomRatio] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+  
+  // Close dropdown when advanced settings are closed
+  useEffect(() => {
+    if (!showAdvanced) {
+      setDropdownOpen(false);
+    }
+  }, [showAdvanced]);
+  
+  // Default settings values
+  const defaultSettings = {
     width: 1024,
     height: 1024,
     guidance_scale: 3.5,
     num_inference_steps: 50,
     seed: undefined as number | undefined,
-  });
+  };
+  
+  const [settings, setSettings] = useState({...defaultSettings});
+  
+  // Function to reset settings to defaults
+  const resetToDefaults = () => {
+    setSettings({...defaultSettings});
+    setSelectedAspectRatio('square');
+    setIsCustomRatio(false);
+  };
 
   const queryClient = useQueryClient();
 
@@ -99,7 +188,7 @@ export const ImageGenerator: React.FC = () => {
             className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
           >
             <Settings className="h-4 w-4" />
-            Advanced Settings
+            Image Settings
             <span className={`transform transition-transform ${showAdvanced ? 'rotate-180' : ''}`}>
               ▼
             </span>
@@ -107,40 +196,214 @@ export const ImageGenerator: React.FC = () => {
 
           {showAdvanced && (
             <div className="mt-4 p-4 bg-gray-50 rounded-lg space-y-4">
+              {/* Defaults button */}
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={resetToDefaults}
+                  className="text-sm px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded-md transition-colors"
+                >
+                  Reset to Defaults
+                </button>
+              </div>
+              
+              {/* Aspect Ratio Selector */}
+              <div className="mb-4">
+                <label
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                  title="Select a preset aspect ratio for your image"
+                >
+                  Aspect Ratio
+                </label>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-4">
+                    {/* Custom dropdown with shapes */}
+                    <div className="flex items-center flex-grow relative" ref={dropdownRef}>
+                      <div
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent cursor-pointer flex items-center justify-between"
+                        onClick={() => setDropdownOpen(!dropdownOpen)}
+                      >
+                        <div className="flex items-center">
+                          {selectedAspectRatio !== 'custom' && (
+                            <div
+                              className="inline-block mr-2 border border-gray-400 bg-purple-100"
+                              style={aspectRatioPresets.find(p => p.name === selectedAspectRatio)?.shape}
+                            />
+                          )}
+                          <span>{aspectRatioPresets.find(p => p.name === selectedAspectRatio)?.label}</span>
+                        </div>
+                        <span className={`transform transition-transform ${dropdownOpen ? 'rotate-180' : ''}`}>▼</span>
+                      </div>
+                      
+                      {dropdownOpen && (
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-10">
+                          {aspectRatioPresets.map((preset) => (
+                            <div
+                              key={preset.name}
+                              className={`px-3 py-2 cursor-pointer flex items-center hover:bg-gray-100 ${selectedAspectRatio === preset.name ? 'bg-purple-50' : ''}`}
+                              onClick={() => {
+                                const newRatio = preset.name;
+                                setSelectedAspectRatio(newRatio);
+                                setIsCustomRatio(newRatio === 'custom');
+                                setDropdownOpen(false);
+                                
+                                // If not custom, adjust dimensions to match the selected ratio
+                                if (newRatio !== 'custom') {
+                                  // Keep the width and adjust the height based on the ratio
+                                  const newHeight = Math.round(settings.width / preset.ratio);
+                                  setSettings(prev => ({
+                                    ...prev,
+                                    height: newHeight
+                                  }));
+                                }
+                              }}
+                            >
+                              {preset.name !== 'custom' && (
+                                <div
+                                  className="inline-block mr-2 border border-gray-400 bg-purple-100"
+                                  style={preset.shape}
+                                />
+                              )}
+                              <span>{preset.label}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Visual indicator on the right */}
+                    <div className="flex items-center justify-center min-w-[100px]">
+                      {selectedAspectRatio !== 'custom' && (
+                        <div
+                          className="border-2 border-purple-500 bg-purple-100 rounded-md"
+                          style={{
+                            width: '80px',
+                            height: `${80 / (aspectRatioPresets.find(p => p.name === selectedAspectRatio)?.ratio || 1)}px`,
+                            maxHeight: '80px',
+                            transition: 'all 0.3s ease'
+                          }}
+                          title={`Visual representation of ${aspectRatioPresets.find(p => p.name === selectedAspectRatio)?.label}`}
+                        />
+                      )}
+                      {selectedAspectRatio === 'custom' && (
+                        <div className="text-sm text-gray-500">
+                          {settings.width} × {settings.height}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <p className="text-xs text-gray-500">
+                    Aspect ratio determines the relationship between width and height
+                  </p>
+                </div>
+              </div>
+              
+              {/* Image Size - Most basic and important setting */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Width
+                  <label
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                    title={isCustomRatio
+                      ? "The width of your image in pixels. Standard size is 1024."
+                      : "The width of your image in pixels. Changing this will automatically adjust the height to maintain the selected aspect ratio."}
+                  >
+                    Image Width {!isCustomRatio && <span className="text-xs text-purple-600">(linked)</span>}
                   </label>
                   <input
                     type="number"
                     value={settings.width}
-                    onChange={(e) => setSettings(prev => ({ ...prev, width: parseInt(e.target.value) }))}
+                    onChange={(e) => {
+                      const newWidth = parseInt(e.target.value);
+                      
+                      if (isCustomRatio) {
+                        // For custom ratio, just update the width
+                        setSettings(prev => ({ ...prev, width: newWidth }));
+                      } else {
+                        // For preset ratios, maintain the aspect ratio
+                        const preset = aspectRatioPresets.find(p => p.name === selectedAspectRatio);
+                        if (preset) {
+                          const newHeight = Math.round(newWidth / preset.ratio);
+                          setSettings(prev => ({
+                            ...prev,
+                            width: newWidth,
+                            height: newHeight
+                          }));
+                        }
+                      }
+                    }}
                     min="256"
                     max="2048"
                     step="64"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    title="Larger values create wider images but take longer to generate"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Height
+                  <label
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                    title={isCustomRatio
+                      ? "The height of your image in pixels. Standard size is 1024."
+                      : "The height of your image in pixels. Changing this will automatically adjust the width to maintain the selected aspect ratio."}
+                  >
+                    Image Height {!isCustomRatio && <span className="text-xs text-purple-600">(linked)</span>}
                   </label>
                   <input
                     type="number"
                     value={settings.height}
-                    onChange={(e) => setSettings(prev => ({ ...prev, height: parseInt(e.target.value) }))}
+                    onChange={(e) => {
+                      const newHeight = parseInt(e.target.value);
+                      
+                      if (isCustomRatio) {
+                        // For custom ratio, just update the height
+                        setSettings(prev => ({ ...prev, height: newHeight }));
+                      } else {
+                        // For preset ratios, maintain the aspect ratio
+                        const preset = aspectRatioPresets.find(p => p.name === selectedAspectRatio);
+                        if (preset) {
+                          const newWidth = Math.round(newHeight * preset.ratio);
+                          setSettings(prev => ({
+                            ...prev,
+                            width: newWidth,
+                            height: newHeight
+                          }));
+                        }
+                      }
+                    }}
                     min="256"
                     max="2048"
                     step="64"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    title="Larger values create taller images but take longer to generate"
                   />
                 </div>
               </div>
 
+              {/* Seed - Important for reproducibility in education */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Guidance Scale: {settings.guidance_scale}
+                <label
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                  title="A seed value lets you recreate the same image again later"
+                >
+                  Consistency Number (optional)
+                </label>
+                <input
+                  type="number"
+                  value={settings.seed || ''}
+                  onChange={(e) => setSettings(prev => ({ ...prev, seed: e.target.value ? parseInt(e.target.value) : undefined }))}
+                  placeholder="Random if empty"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  title="Use the same number to create similar images. Leave empty for random results each time."
+                />
+              </div>
+
+              {/* Guidance Scale - Affects how closely the image follows the prompt */}
+              <div>
+                <label
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                  title="Controls how closely the image follows your description"
+                >
+                  Text Adherence: {settings.guidance_scale}
                 </label>
                 <input
                   type="range"
@@ -150,12 +413,21 @@ export const ImageGenerator: React.FC = () => {
                   value={settings.guidance_scale}
                   onChange={(e) => setSettings(prev => ({ ...prev, guidance_scale: parseFloat(e.target.value) }))}
                   className="w-full"
+                  title="Higher values make the image follow your text more closely. Lower values allow more creativity."
                 />
+                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                  <span>More Creative</span>
+                  <span>More Literal</span>
+                </div>
               </div>
 
+              {/* Inference Steps - More technical, affects quality */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Inference Steps: {settings.num_inference_steps}
+                <label
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                  title="Controls the quality and detail of the image"
+                >
+                  Quality Level: {settings.num_inference_steps}
                 </label>
                 <input
                   type="range"
@@ -165,20 +437,12 @@ export const ImageGenerator: React.FC = () => {
                   value={settings.num_inference_steps}
                   onChange={(e) => setSettings(prev => ({ ...prev, num_inference_steps: parseInt(e.target.value) }))}
                   className="w-full"
+                  title="Higher values create more detailed images but take longer to generate"
                 />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Seed (optional)
-                </label>
-                <input
-                  type="number"
-                  value={settings.seed || ''}
-                  onChange={(e) => setSettings(prev => ({ ...prev, seed: e.target.value ? parseInt(e.target.value) : undefined }))}
-                  placeholder="Random if empty"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                />
+                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                  <span>Faster</span>
+                  <span>Higher Quality</span>
+                </div>
               </div>
             </div>
           )}

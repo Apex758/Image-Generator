@@ -47,10 +47,10 @@ function AppContent() {
             </div>
           </div>
           <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl mb-4">
-            FLUX Image Generator
+            OECS Image Generator
           </h1>
           <p className="text-lg leading-8 text-gray-600 max-w-2xl mx-auto mb-4">
-            Create stunning AI-generated images using FLUX.1-dev model. 
+            Create stunning AI-generated images for your teaching needs. 
             Describe your vision and watch it come to life.
           </p>
           
@@ -112,7 +112,6 @@ function AppContent() {
 
         {/* Footer */}
         <div className="mt-16 text-center text-sm text-gray-500">
-          <p>Powered by FLUX.1-dev • Built with React & FastAPI</p>
           {config && (
             <p className="mt-1">
               Currently using: {config.generation_method}
