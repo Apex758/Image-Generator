@@ -13,8 +13,11 @@ from typing import List, Optional
 import base64
 from io import BytesIO
 from PIL import Image
+from dotenv import load_dotenv
 
-app = FastAPI(title="FLUX Image Generator API")
+load_dotenv()
+
+app = FastAPI(title="Image Generator API")
 
 # CORS middleware
 app.add_middleware(
@@ -41,7 +44,8 @@ def load_model():
     if pipe is None:
         print("Loading FLUX.1-dev model...")
         pipe = FluxPipeline.from_pretrained(
-            "black-forest-labs/FLUX.1-dev", 
+            "black-forest-labs/FLUX.1-dev",
+            token=os.getenv("HF_TOKEN"),
             torch_dtype=torch.bfloat16
         )
         pipe.enable_model_cpu_offload()
