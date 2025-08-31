@@ -34,4 +34,4 @@ package-lock.json
 **/.env
 
 
-generated_images
+backend/generated_images/*
