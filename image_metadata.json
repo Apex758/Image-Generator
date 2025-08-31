@@ -1,0 +1,15 @@
+[
+  {
+    "id": "35fd9225-4e16-4639-baac-10d8bb4721a6",
+    "filename": "35fd9225-4e16-4639-baac-10d8bb4721a6.png",
+    "url": "/static/35fd9225-4e16-4639-baac-10d8bb4721a6.png",
+    "prompt": "A cozy coffee shop in autumn",
+    "created_at": "2025-08-31T02:58:46.914359",
+    "width": 1024,
+    "height": 1024,
+    "seed": null,
+    "guidance_scale": 3.5,
+    "num_inference_steps": 50,
+    "generation_method": "hf_api"
+  }
+]

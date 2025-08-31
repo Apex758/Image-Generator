@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const api = axios.create({
+const apiClient = axios.create({
   baseURL: '/api',
 });
 
@@ -24,6 +24,13 @@ export interface ImageData {
   seed?: number;
   guidance_scale?: number;
   num_inference_steps?: number;
+  generation_method?: string;
+}
+
+export interface ConfigData {
+  use_hf_api: boolean;
+  hf_api_configured: boolean;
+  generation_method: string;
 }
 
 export interface Item {
@@ -34,17 +41,22 @@ export interface Item {
 
 export const imageApi = {
   generate: async (request: GenerateImageRequest): Promise<ImageData> => {
-    const response = await api.post('/generate', request);
+    const response = await apiClient.post('/generate', request);
     return response.data;
   },
 
   list: async (): Promise<ImageData[]> => {
-    const response = await api.get('/images');
+    const response = await apiClient.get('/images');
     return response.data;
   },
 
   delete: async (imageId: string): Promise<void> => {
-    await api.delete(`/images/${imageId}`);
+    await apiClient.delete(`/images/${imageId}`);
+  },
+
+  getConfig: async (): Promise<ConfigData> => {
+    const response = await apiClient.get('/config');
+    return response.data;
   },
 };
 
