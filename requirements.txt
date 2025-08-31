@@ -9,3 +9,4 @@ python-multipart
 huggingface-hub
 aiohttp
 python-dotenv
+nltk

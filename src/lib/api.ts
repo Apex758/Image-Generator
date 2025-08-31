@@ -27,6 +27,15 @@ export interface ImageData {
   generation_method?: string;
 }
 
+export interface ImagePrompt {
+  prompt: string;
+  explanation: string;
+}
+
+export interface LessonPlanAnalysisResponse {
+  image_prompts: ImagePrompt[];
+}
+
 export interface ConfigData {
   use_hf_api: boolean;
   hf_api_configured: boolean;
@@ -56,6 +65,14 @@ export const imageApi = {
 
   getConfig: async (): Promise<ConfigData> => {
     const response = await apiClient.get('/config');
+    return response.data;
+  },
+
+  analyzeLessonPlan: async (lessonPlan: string, maxImages: number = 5): Promise<LessonPlanAnalysisResponse> => {
+    const response = await apiClient.post('/analyze-lesson-plan', {
+      lesson_plan: lessonPlan,
+      max_images: maxImages
+    });
     return response.data;
   },
 };

@@ -4,7 +4,11 @@ import { Container } from './components/layout/Container';
 import { ImageGenerator } from './components/ImageGenerator/ImageGenerator';
 import { ImageGallery } from './components/ImageGallery/ImageGallery';
 import { Sparkles, Cloud, Cpu } from 'lucide-react';
-import { api } from './lib/api';
+import { api, ImagePrompt } from './lib/api';
+import { LessonPlanButton } from './components/LessonPlanModal/LessonPlanButton';
+import { LessonPlan } from './components/LessonPlanModal/mockData';
+import { PromptApproval } from './components/PromptApproval/PromptApproval';
+import { SequentialGenerator } from './components/SequentialGenerator/SequentialGenerator';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -21,8 +25,27 @@ interface ConfigData {
   generation_method: string;
 }
 
+interface LessonPlanState {
+  selectedLessonPlan: LessonPlan | null;
+  imagePrompts: ImagePrompt[];
+  isAnalyzing: boolean;
+  error: string | null;
+  showPromptApproval: boolean;
+  showSequentialGenerator: boolean;
+  approvedPrompts: ImagePrompt[];
+}
+
 function AppContent() {
   const [config, setConfig] = useState<ConfigData | null>(null);
+  const [lessonPlanState, setLessonPlanState] = useState<LessonPlanState>({
+    selectedLessonPlan: null,
+    imagePrompts: [],
+    isAnalyzing: false,
+    error: null,
+    showPromptApproval: false,
+    showSequentialGenerator: false,
+    approvedPrompts: []
+  });
 
   useEffect(() => {
     const fetchConfig = async () => {
@@ -35,6 +58,70 @@ function AppContent() {
     };
     fetchConfig();
   }, []);
+
+  const handleLessonPlanSelect = async (lessonPlan: LessonPlan) => {
+    try {
+      setLessonPlanState({
+        selectedLessonPlan: lessonPlan,
+        imagePrompts: [],
+        isAnalyzing: true,
+        error: null,
+        showPromptApproval: false,
+        showSequentialGenerator: false,
+        approvedPrompts: []
+      });
+
+      // Call the backend to analyze the lesson plan
+      const result = await api.analyzeLessonPlan(lessonPlan.content);
+      
+      setLessonPlanState(prev => ({
+        ...prev,
+        imagePrompts: result.image_prompts,
+        isAnalyzing: false,
+        showPromptApproval: true,
+        showSequentialGenerator: false
+      }));
+
+      console.log('Lesson plan analyzed successfully:', result);
+    } catch (error) {
+      console.error('Failed to analyze lesson plan:', error);
+      setLessonPlanState(prev => ({
+        ...prev,
+        isAnalyzing: false,
+        error: 'Failed to analyze lesson plan. Please try again.',
+        showSequentialGenerator: false
+      }));
+    }
+  };
+
+  const handleGenerateApprovedImages = (approvedPrompts: ImagePrompt[]) => {
+    console.log('Generating approved images:', approvedPrompts);
+    
+    // Hide the prompt approval and show the sequential generator
+    setLessonPlanState(prev => ({
+      ...prev,
+      showPromptApproval: false,
+      showSequentialGenerator: true,
+      approvedPrompts: approvedPrompts
+    }));
+  };
+  
+  const handleGenerationComplete = () => {
+    // Hide the sequential generator when complete
+    setLessonPlanState(prev => ({
+      ...prev,
+      showSequentialGenerator: false
+    }));
+  };
+  
+  const handleGenerationCancel = () => {
+    // Go back to prompt approval
+    setLessonPlanState(prev => ({
+      ...prev,
+      showPromptApproval: true,
+      showSequentialGenerator: false
+    }));
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50">
@@ -54,7 +141,13 @@ function AppContent() {
             Design visual aids, classroom materials, and educational content with AI assistance.
           </p>
           
-
+          <div className="flex justify-center gap-4">
+            <LessonPlanButton
+              onSelectLessonPlan={handleLessonPlanSelect}
+              variant="primary"
+              size="md"
+            />
+          </div>
         </div>
 
         {/* Configuration Warning */}
@@ -83,6 +176,50 @@ function AppContent() {
 
         {/* Main Content */}
         <div className="space-y-8">
+          {/* Selected Lesson Plan Info */}
+          {lessonPlanState.selectedLessonPlan && (
+            <div className="p-5 bg-blue-50 border border-blue-100 rounded-lg shadow-sm mb-6">
+              <h3 className="text-lg font-medium text-blue-800 mb-2">
+                Selected Lesson Plan: {lessonPlanState.selectedLessonPlan.title}
+              </h3>
+              <div className="flex gap-2 mb-3">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                  {lessonPlanState.selectedLessonPlan.gradeLevel}
+                </span>
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                  {lessonPlanState.selectedLessonPlan.subject}
+                </span>
+              </div>
+              
+              {lessonPlanState.isAnalyzing && (
+                <p className="text-sm text-blue-600">Analyzing lesson plan...</p>
+              )}
+              
+              {lessonPlanState.error && (
+                <p className="text-sm text-red-600">{lessonPlanState.error}</p>
+              )}
+              
+              {lessonPlanState.showPromptApproval && lessonPlanState.imagePrompts.length > 0 && (
+                <div className="mt-3">
+                  <PromptApproval
+                    prompts={lessonPlanState.imagePrompts}
+                    onGenerateApproved={handleGenerateApprovedImages}
+                  />
+                </div>
+              )}
+              
+              {lessonPlanState.showSequentialGenerator && lessonPlanState.approvedPrompts.length > 0 && (
+                <div className="mt-3">
+                  <SequentialGenerator
+                    prompts={lessonPlanState.approvedPrompts}
+                    onComplete={handleGenerationComplete}
+                    onCancel={handleGenerationCancel}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+          
           {/* Image Generator */}
           <ImageGenerator />
           
