@@ -27,8 +27,8 @@ function AppContent() {
   useEffect(() => {
     const fetchConfig = async () => {
       try {
-        const response = await api.getConfig();
-        setConfig(response.data);
+        const configData = await api.getConfig();
+        setConfig(configData);
       } catch (error) {
         console.error('Failed to fetch config:', error);
       }
@@ -37,49 +37,29 @@ function AppContent() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50">
-      <Container className="py-8 max-w-6xl">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50">
+      <Container className="py-10 max-w-6xl">
         {/* Header */}
         <div className="text-center mb-12">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="p-3 bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl">
+          <div className="flex items-center justify-center gap-3 mb-5">
+            <div className="p-4 bg-gradient-to-r from-blue-600 to-blue-500 rounded-2xl shadow-md">
               <Sparkles className="h-8 w-8 text-white" />
             </div>
           </div>
           <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl mb-4">
-            OECS Image Generator
+            Educator's Image Studio
           </h1>
-          <p className="text-lg leading-8 text-gray-600 max-w-2xl mx-auto mb-4">
-            Create stunning AI-generated images for your teaching needs. 
-            Describe your vision and watch it come to life.
+          <p className="text-lg leading-8 text-gray-600 max-w-2xl mx-auto mb-5">
+            Create professional teaching resources in seconds.
+            Design visual aids, classroom materials, and educational content with AI assistance.
           </p>
           
-          {/* Generation Method Indicator */}
-          {config && (
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-lg border border-gray-200 shadow-sm">
-              {config.use_hf_api ? (
-                <>
-                  <Cloud className="h-4 w-4 text-blue-600" />
-                  <span className="text-sm text-gray-700">
-                    Using Hugging Face API
-                    {!config.hf_api_configured && (
-                      <span className="text-red-600 ml-1">(Not Configured)</span>
-                    )}
-                  </span>
-                </>
-              ) : (
-                <>
-                  <Cpu className="h-4 w-4 text-green-600" />
-                  <span className="text-sm text-gray-700">Using Local Model</span>
-                </>
-              )}
-            </div>
-          )}
+
         </div>
 
         {/* Configuration Warning */}
         {config && config.use_hf_api && !config.hf_api_configured && (
-          <div className="mb-8 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <div className="mb-8 p-5 bg-yellow-50 border border-yellow-100 rounded-lg shadow-sm">
             <div className="flex items-start">
               <div className="flex-shrink-0">
                 <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
@@ -88,12 +68,12 @@ function AppContent() {
               </div>
               <div className="ml-3">
                 <h3 className="text-sm font-medium text-yellow-800">
-                  Hugging Face API Token Required
+                  API Configuration Required
                 </h3>
                 <div className="mt-2 text-sm text-yellow-700">
                   <p>
-                    To use the Hugging Face API, you need to set your API token. 
-                    Get one from <a href="https://huggingface.co/settings/tokens" target="_blank" rel="noopener noreferrer" className="underline">Hugging Face Settings</a> and set the <code className="bg-yellow-100 px-1 rounded">HF_API_TOKEN</code> environment variable.
+                    To enable cloud-based image generation, you need to set up your API token.
+                    Get one from <a href="https://huggingface.co/settings/tokens" target="_blank" rel="noopener noreferrer" className="underline hover:text-yellow-800 transition-colors">Hugging Face Settings</a> and set the <code className="bg-yellow-100 px-1.5 py-0.5 rounded font-mono text-xs">HF_API_TOKEN</code> environment variable.
                   </p>
                 </div>
               </div>
@@ -113,9 +93,14 @@ function AppContent() {
         {/* Footer */}
         <div className="mt-16 text-center text-sm text-gray-500">
           {config && (
-            <p className="mt-1">
-              Currently using: {config.generation_method}
-            </p>
+            <div className="mt-1 space-y-1">
+              <p>
+                Generation method: <span className="text-blue-600">{config.generation_method}</span>
+              </p>
+              <p className="text-xs">
+                Created for educational purposes. All generated images are for classroom use only.
+              </p>
+            </div>
           )}
         </div>
       </Container>

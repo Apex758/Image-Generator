@@ -134,45 +134,46 @@ export const ImageGenerator: React.FC = () => {
   };
 
   const presetPrompts = [
-    "A serene mountain landscape at sunset",
-    "A cozy coffee shop in autumn",
-    "A futuristic city with flying cars",
-    "A magical forest with glowing mushrooms",
-    "A cat wearing a wizard hat",
+    "A colorful classroom with engaged students for a back-to-school presentation",
+    "An illustrated timeline of historical events for a history lesson",
+    "A diagram of the water cycle for an elementary science class",
+    "A visual representation of fractions for a math lesson",
+    "A map of ancient civilizations for a social studies unit",
+    "An illustrated periodic table for chemistry class",
   ];
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-      <div className="flex items-center gap-2 mb-6">
-        <Sparkles className="h-5 w-5 text-purple-600" />
-        <h2 className="text-xl font-semibold text-gray-900">Generate Image</h2>
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <div className="flex items-center gap-3 mb-6">
+        <Sparkles className="h-5 w-5 text-blue-600" />
+        <h2 className="text-xl font-semibold text-gray-900">Create Teaching Resource</h2>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
           <label htmlFor="prompt" className="block text-sm font-medium text-gray-700 mb-2">
-            Describe your image
+            Describe your teaching resource
           </label>
           <textarea
             id="prompt"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            placeholder="A homeless cat holding a cardboard sign that says 'Hi Mom!'"
-            className="w-full h-24 px-3 py-2 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            placeholder="Describe the educational image you need for your classroom or lesson plan..."
+            className="w-full h-24 px-4 py-3 border border-gray-200 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
             required
           />
         </div>
 
         {/* Preset prompts */}
         <div>
-          <p className="text-sm text-gray-600 mb-2">Try these prompts:</p>
+          <p className="text-sm text-gray-600 mb-2">Educational examples:</p>
           <div className="flex flex-wrap gap-2">
             {presetPrompts.map((preset, index) => (
               <button
                 key={index}
                 type="button"
                 onClick={() => setPrompt(preset)}
-                className="text-xs px-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+                className="text-xs px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-full transition-colors shadow-sm"
               >
                 {preset}
               </button>
@@ -185,23 +186,23 @@ export const ImageGenerator: React.FC = () => {
           <button
             type="button"
             onClick={() => setShowAdvanced(!showAdvanced)}
-            className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
+            className="flex items-center gap-2 text-sm text-gray-600 hover:text-blue-600 transition-colors"
           >
             <Settings className="h-4 w-4" />
-            Image Settings
+            Resource Settings
             <span className={`transform transition-transform ${showAdvanced ? 'rotate-180' : ''}`}>
               ▼
             </span>
           </button>
 
           {showAdvanced && (
-            <div className="mt-4 p-4 bg-gray-50 rounded-lg space-y-4">
+            <div className="mt-4 p-5 bg-gray-50 rounded-lg space-y-4 border border-gray-100">
               {/* Defaults button */}
               <div className="flex justify-end">
                 <button
                   type="button"
                   onClick={resetToDefaults}
-                  className="text-sm px-3 py-1 bg-gray-200 hover:bg-gray-300 rounded-md transition-colors"
+                  className="text-sm px-3 py-1.5 bg-gray-200 hover:bg-gray-300 rounded-md transition-colors shadow-sm"
                 >
                   Reset to Defaults
                 </button>
@@ -211,9 +212,9 @@ export const ImageGenerator: React.FC = () => {
               <div className="mb-4">
                 <label
                   className="block text-sm font-medium text-gray-700 mb-1"
-                  title="Select a preset aspect ratio for your image"
+                  title="Select a preset aspect ratio for your teaching resource"
                 >
-                  Aspect Ratio
+                  Resource Format
                 </label>
                 <div className="space-y-2">
                   <div className="flex items-center gap-4">
@@ -294,7 +295,7 @@ export const ImageGenerator: React.FC = () => {
                   </div>
                   
                   <p className="text-xs text-gray-500">
-                    Aspect ratio determines the relationship between width and height
+                    Choose the best format for your teaching materials (slides, handouts, posters, etc.)
                   </p>
                 </div>
               </div>
@@ -305,10 +306,10 @@ export const ImageGenerator: React.FC = () => {
                   <label
                     className="block text-sm font-medium text-gray-700 mb-1"
                     title={isCustomRatio
-                      ? "The width of your image in pixels. Standard size is 1024."
-                      : "The width of your image in pixels. Changing this will automatically adjust the height to maintain the selected aspect ratio."}
+                      ? "The width of your resource in pixels. Standard size is 1024."
+                      : "The width of your resource in pixels. Changing this will automatically adjust the height to maintain the selected aspect ratio."}
                   >
-                    Image Width {!isCustomRatio && <span className="text-xs text-purple-600">(linked)</span>}
+                    Resource Width {!isCustomRatio && <span className="text-xs text-blue-600">(linked)</span>}
                   </label>
                   <input
                     type="number"
@@ -335,18 +336,18 @@ export const ImageGenerator: React.FC = () => {
                     min="256"
                     max="2048"
                     step="64"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    title="Larger values create wider images but take longer to generate"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
+                    title="Larger values create wider resources but take longer to generate"
                   />
                 </div>
                 <div>
                   <label
                     className="block text-sm font-medium text-gray-700 mb-1"
                     title={isCustomRatio
-                      ? "The height of your image in pixels. Standard size is 1024."
-                      : "The height of your image in pixels. Changing this will automatically adjust the width to maintain the selected aspect ratio."}
+                      ? "The height of your resource in pixels. Standard size is 1024."
+                      : "The height of your resource in pixels. Changing this will automatically adjust the width to maintain the selected aspect ratio."}
                   >
-                    Image Height {!isCustomRatio && <span className="text-xs text-purple-600">(linked)</span>}
+                    Resource Height {!isCustomRatio && <span className="text-xs text-blue-600">(linked)</span>}
                   </label>
                   <input
                     type="number"
@@ -373,8 +374,8 @@ export const ImageGenerator: React.FC = () => {
                     min="256"
                     max="2048"
                     step="64"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                    title="Larger values create taller images but take longer to generate"
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
+                    title="Larger values create taller resources but take longer to generate"
                   />
                 </div>
               </div>
@@ -383,17 +384,17 @@ export const ImageGenerator: React.FC = () => {
               <div>
                 <label
                   className="block text-sm font-medium text-gray-700 mb-1"
-                  title="A seed value lets you recreate the same image again later"
+                  title="A seed value lets you recreate the same resource again later - useful for creating matching sets"
                 >
-                  Consistency Number (optional)
+                  Reproducibility ID (optional)
                 </label>
                 <input
                   type="number"
                   value={settings.seed || ''}
                   onChange={(e) => setSettings(prev => ({ ...prev, seed: e.target.value ? parseInt(e.target.value) : undefined }))}
                   placeholder="Random if empty"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  title="Use the same number to create similar images. Leave empty for random results each time."
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
+                  title="Use the same number to create matching resources. Leave empty for unique results each time."
                 />
               </div>
 
@@ -401,9 +402,9 @@ export const ImageGenerator: React.FC = () => {
               <div>
                 <label
                   className="block text-sm font-medium text-gray-700 mb-1"
-                  title="Controls how closely the image follows your description"
+                  title="Controls how closely the resource follows your description"
                 >
-                  Text Adherence: {settings.guidance_scale}
+                  Description Adherence: {settings.guidance_scale}
                 </label>
                 <input
                   type="range"
@@ -425,9 +426,9 @@ export const ImageGenerator: React.FC = () => {
               <div>
                 <label
                   className="block text-sm font-medium text-gray-700 mb-1"
-                  title="Controls the quality and detail of the image"
+                  title="Controls the quality and detail of the resource"
                 >
-                  Quality Level: {settings.num_inference_steps}
+                  Resource Quality: {settings.num_inference_steps}
                 </label>
                 <input
                   type="range"
@@ -451,27 +452,27 @@ export const ImageGenerator: React.FC = () => {
         <Button
           type="submit"
           disabled={!prompt.trim() || generateMutation.isLoading}
-          className="w-full"
+          className="w-full shadow-sm"
           size="lg"
         >
           {generateMutation.isLoading ? (
             <>
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              Generating...
+              Creating your resource...
             </>
           ) : (
             <>
               <Sparkles className="mr-2 h-5 w-5" />
-              Generate Image
+              Create Teaching Resource
             </>
           )}
         </Button>
       </form>
 
       {generateMutation.isError && (
-        <div className="mt-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+        <div className="mt-4 p-4 bg-red-50 border border-red-100 rounded-lg shadow-sm">
           <p className="text-red-800 text-sm">
-            Failed to generate image. Please try again.
+            Failed to create teaching resource. Please try again.
           </p>
         </div>
       )}
