@@ -401,7 +401,6 @@ async def generate_image(request: GenerateImageRequest):
             # Verify the image was saved correctly by opening it again
             try:
                 # Flush any file system buffers to ensure the file is fully written
-                import os
                 os.fsync(os.open(filepath, os.O_RDONLY))
                 
                 # Attempt to open the saved image to verify it's valid

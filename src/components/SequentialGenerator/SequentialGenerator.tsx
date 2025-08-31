@@ -1,6 +1,3 @@
-git add . 
-git commit -m "working"
-git push
 import React, { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from 'react-query';
 import { Button } from '../ui/Button';
@@ -26,15 +23,19 @@ export const SequentialGenerator: React.FC<SequentialGeneratorProps> = ({
 
   // Generate a single image
   const generateMutation = useMutation(
-    (request: { prompt: string }) => api.generate({
-      prompt: request.prompt,
-      width: 1024,
-      height: 1024,
-      guidance_scale: 3.5,
-      num_inference_steps: 50
-    }),
+    (request: { prompt: string }) => {
+      console.log('[SequentialGenerator] Starting image generation for prompt:', request.prompt);
+      return api.generate({
+        prompt: request.prompt,
+        width: 1024,
+        height: 1024,
+        guidance_scale: 3.5,
+        num_inference_steps: 50
+      });
+    },
     {
       onSuccess: (data) => {
+        console.log('[SequentialGenerator] Image generated successfully:', data);
         // Add the new image to our list
         setGeneratedImages(prev => [...prev, data]);
         
@@ -45,7 +46,13 @@ export const SequentialGenerator: React.FC<SequentialGeneratorProps> = ({
         queryClient.invalidateQueries('images');
       },
       onError: (error: any) => {
-        console.error('Generation failed:', error);
+        console.error('[SequentialGenerator] Generation failed:', error);
+        console.error('[SequentialGenerator] Error details:', {
+          name: error?.name,
+          message: error?.message,
+          status: error?.response?.status,
+          data: error?.response?.data
+        });
         setError('Failed to generate image. Please try again.');
         setIsGenerating(false);
       },
