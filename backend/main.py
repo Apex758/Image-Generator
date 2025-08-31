@@ -33,12 +33,17 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Define absolute paths
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR = os.path.dirname(BASE_DIR)
+IMAGES_DIR = os.path.join(ROOT_DIR, "generated_images")
+
 # Create directories
-os.makedirs("generated_images", exist_ok=True)
-os.makedirs("static", exist_ok=True)
+os.makedirs(IMAGES_DIR, exist_ok=True)
+os.makedirs(os.path.join(ROOT_DIR, "static"), exist_ok=True)
 
 # Mount static files
-app.mount("/static", StaticFiles(directory="generated_images"), name="static")
+app.mount("/static", StaticFiles(directory=IMAGES_DIR), name="static")
 
 # Configuration
 USE_HF_API = os.getenv("USE_HF_API", "true").lower() == "true"
@@ -223,7 +228,7 @@ async def generate_image(request: GenerateImageRequest):
         # Generate unique filename
         image_id = str(uuid.uuid4())
         filename = f"{image_id}.png"
-        filepath = os.path.join("generated_images", filename)
+        filepath = os.path.join(IMAGES_DIR, filename)
         
         print(f"Generating image with prompt: {request.prompt}")
         print(f"Using method: {'Hugging Face API' if USE_HF_API else 'Local Model'}")
@@ -344,7 +349,7 @@ async def delete_image(image_id: str):
             raise HTTPException(status_code=404, detail="Image not found")
         
         # Delete file
-        filepath = os.path.join("generated_images", image_to_delete["filename"])
+        filepath = os.path.join(IMAGES_DIR, image_to_delete["filename"])
         if os.path.exists(filepath):
             os.remove(filepath)
         
