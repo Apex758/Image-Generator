@@ -1,3 +1,6 @@
+git add . 
+git commit -m "working"
+git push
 import React, { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from 'react-query';
 import { Button } from '../ui/Button';
