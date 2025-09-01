@@ -103,15 +103,18 @@ export const SVGTextEditor: React.FC<SVGTextEditorProps> = ({
     }
   };
 
-  // Initialize replacements with actual AI-generated content from SVG
+  // Initialize replacements with actual AI-generated content from SVG (only on first load)
   useEffect(() => {
-    const initialReplacements: Record<string, string> = {};
-    editablePlaceholders.forEach(placeholder => {
-      const extractedContent = extractContentFromSVG(placeholder);
-      initialReplacements[placeholder] = extractedContent || '';
-    });
-    setReplacements(initialReplacements);
-  }, [editablePlaceholders, svgContent]);
+    // Only initialize if replacements is empty (first load)
+    if (Object.keys(replacements).length === 0) {
+      const initialReplacements: Record<string, string> = {};
+      editablePlaceholders.forEach(placeholder => {
+        const extractedContent = extractContentFromSVG(placeholder);
+        initialReplacements[placeholder] = extractedContent || '';
+      });
+      setReplacements(initialReplacements);
+    }
+  }, [editablePlaceholders]); // Remove svgContent from dependencies to prevent resets
 
   // Update preview when replacements change
   useEffect(() => {
