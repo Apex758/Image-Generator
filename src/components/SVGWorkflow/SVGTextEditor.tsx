@@ -57,20 +57,58 @@ export const SVGTextEditor: React.FC<SVGTextEditorProps> = ({
   const [showPreview, setShowPreview] = useState(true);
   const [previewContent, setPreviewContent] = useState(svgContent);
 
-  // Initialize replacements with editable placeholders only
+  // Extract actual AI-generated content from SVG
+  const extractContentFromSVG = (placeholder: string): string => {
+    try {
+      // Create a temporary DOM element to parse the SVG
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(svgContent, 'image/svg+xml');
+      
+      // Look for text elements that might contain our content
+      const textElements = doc.querySelectorAll('text, tspan');
+      
+      for (const element of textElements) {
+        const textContent = element.textContent?.trim() || '';
+        
+        // Skip empty content or template fields
+        if (!textContent || textContent.length < 10) continue;
+        
+        // Match content based on placeholder type
+        if (placeholder === 'instructions') {
+          // Instructions usually contain words like "look", "answer", "examine", etc.
+          if (textContent.toLowerCase().includes('look') ||
+              textContent.toLowerCase().includes('answer') ||
+              textContent.toLowerCase().includes('examine') ||
+              textContent.toLowerCase().includes('study') ||
+              textContent.toLowerCase().includes('questions')) {
+            return textContent;
+          }
+        } else if (placeholder.startsWith('question')) {
+          // Questions typically end with "?" or contain question words
+          if (textContent.includes('?') ||
+              textContent.toLowerCase().match(/^(what|how|why|where|when|which|describe|explain|identify)/)) {
+            // Try to find the right question by position or content
+            if (textContent.includes('?')) {
+              return textContent;
+            }
+          }
+        }
+      }
+      
+      // Fallback: return empty string to allow user input
+      return '';
+    } catch (error) {
+      console.warn('Failed to extract content from SVG:', error);
+      return '';
+    }
+  };
+
+  // Initialize replacements with actual AI-generated content from SVG
   useEffect(() => {
     const initialReplacements: Record<string, string> = {};
     editablePlaceholders.forEach(placeholder => {
-      // Extract current text from SVG for this placeholder
-      const regex = new RegExp(`\\[${placeholder}\\]`, 'g');
-      const match = svgContent.match(regex);
-      if (match) {
-        // Try to extract the actual content between the brackets
-        const contentMatch = svgContent.match(new RegExp(`\\[${placeholder}\\]([^\\[]*)`));
-        initialReplacements[placeholder] = contentMatch ? contentMatch[1].trim() : placeholder;
-      } else {
-        initialReplacements[placeholder] = placeholder;
-      }
+      const extractedContent = extractContentFromSVG(placeholder);
+      initialReplacements[placeholder] = extractedContent || '';
     });
     setReplacements(initialReplacements);
   }, [editablePlaceholders, svgContent]);
