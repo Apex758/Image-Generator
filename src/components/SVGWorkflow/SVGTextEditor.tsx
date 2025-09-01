@@ -1,8 +1,38 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useMutation } from 'react-query';
 import { Button } from '../ui/Button';
 import { Save, X, RotateCcw, Eye, EyeOff } from 'lucide-react';
 import { svgApi, ProcessSVGRequest } from '../../lib/api';
+
+// Function to safely clean and prepare SVG content for rendering (same as SVGPreview)
+const cleanSVGContent = (svgString: string): string => {
+  let content = svgString;
+
+  // Remove any XML declarations if present
+  content = content.replace(/<\?xml[^>]*\?>/g, '');
+  
+  // Ensure proper SVG namespace
+  if (!content.includes('xmlns="http://www.w3.org/2000/svg"')) {
+    content = content.replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg"');
+  }
+
+  // Clean up any namespace prefixes that might cause issues
+  content = content.replace(/ns0:/g, '');
+  content = content.replace(/xmlns:ns0="[^"]*"/g, '');
+
+  // Ensure viewBox is present and valid
+  if (!content.includes('viewBox=')) {
+    const widthMatch = content.match(/width="([^"]+)"/);
+    const heightMatch = content.match(/height="([^"]+)"/);
+    if (widthMatch && heightMatch) {
+      const width = parseInt(widthMatch[1]) || 800;
+      const height = parseInt(heightMatch[1]) || 600;
+      content = content.replace('<svg', `<svg viewBox="0 0 ${width} ${height}"`);
+    }
+  }
+
+  return content;
+};
 
 interface SVGTextEditorProps {
   svgContent: string;
@@ -17,25 +47,40 @@ export const SVGTextEditor: React.FC<SVGTextEditorProps> = ({
   onSave,
   onCancel
 }) => {
+  // Filter to only show AI-generated content placeholders
+  const editablePlaceholders = placeholders.filter(placeholder => {
+    const aiContentFields = ['instructions', 'question1', 'question2', 'question3', 'question4', 'question5'];
+    return aiContentFields.includes(placeholder);
+  });
+
   const [replacements, setReplacements] = useState<Record<string, string>>({});
   const [showPreview, setShowPreview] = useState(true);
   const [previewContent, setPreviewContent] = useState(svgContent);
 
-  // Initialize replacements with placeholder names as default values
+  // Initialize replacements with editable placeholders only
   useEffect(() => {
     const initialReplacements: Record<string, string> = {};
-    placeholders.forEach(placeholder => {
-      initialReplacements[placeholder] = placeholder;
+    editablePlaceholders.forEach(placeholder => {
+      // Extract current text from SVG for this placeholder
+      const regex = new RegExp(`\\[${placeholder}\\]`, 'g');
+      const match = svgContent.match(regex);
+      if (match) {
+        // Try to extract the actual content between the brackets
+        const contentMatch = svgContent.match(new RegExp(`\\[${placeholder}\\]([^\\[]*)`));
+        initialReplacements[placeholder] = contentMatch ? contentMatch[1].trim() : placeholder;
+      } else {
+        initialReplacements[placeholder] = placeholder;
+      }
     });
     setReplacements(initialReplacements);
-  }, [placeholders]);
+  }, [editablePlaceholders, svgContent]);
 
   // Update preview when replacements change
   useEffect(() => {
     let updatedContent = svgContent;
     Object.entries(replacements).forEach(([placeholder, replacement]) => {
-      const regex = new RegExp(`{${placeholder}}`, 'g');
-      updatedContent = updatedContent.replace(regex, replacement || placeholder);
+        const regex = new RegExp(`\\[${placeholder}\\]`, 'g');
+        updatedContent = updatedContent.replace(regex, `[${replacement}]`);
     });
     setPreviewContent(updatedContent);
   }, [svgContent, replacements]);
@@ -62,11 +107,24 @@ export const SVGTextEditor: React.FC<SVGTextEditorProps> = ({
 
   const handleReset = () => {
     const initialReplacements: Record<string, string> = {};
-    placeholders.forEach(placeholder => {
+    editablePlaceholders.forEach(placeholder => {
       initialReplacements[placeholder] = placeholder;
     });
     setReplacements(initialReplacements);
   };
+
+  // Memoize the SVG processing to avoid re-running on every render (same as SVGPreview)
+  const processedSVG = useMemo(() => {
+    let content = cleanSVGContent(previewContent);
+
+    // Highlight placeholders like in the main preview
+    content = content.replace(
+      /\[([^\]]+)\]/g,
+      '<tspan fill="#ef4444" font-weight="bold">[$1]</tspan>'
+    );
+
+    return content;
+  }, [previewContent]);
 
   const handleSave = () => {
     const request: ProcessSVGRequest = {
@@ -113,33 +171,33 @@ export const SVGTextEditor: React.FC<SVGTextEditorProps> = ({
           </div>
 
           <div className="space-y-4 max-h-96 overflow-y-auto">
-            {placeholders.map((placeholder, index) => (
+            {editablePlaceholders.map((placeholder, index) => (
               <div key={index} className="space-y-2">
-                <label 
+                <label
                   htmlFor={`placeholder-${index}`}
                   className="block text-sm font-medium text-gray-700"
                 >
-                  <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-800 mr-2">
+                  <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800 mr-2">
                     {placeholder}
                   </span>
-                  Replacement Text
+                  Edit Content
                 </label>
                 <textarea
                   id={`placeholder-${index}`}
                   value={replacements[placeholder] || ''}
                   onChange={(e) => handleReplacementChange(placeholder, e.target.value)}
-                  placeholder={`Enter replacement for ${placeholder}`}
-                  rows={2}
+                  placeholder={`Enter content for ${placeholder}`}
+                  rows={3}
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
                 />
               </div>
             ))}
           </div>
 
-          {placeholders.length === 0 && (
+          {editablePlaceholders.length === 0 && (
             <div className="text-center py-8 text-gray-500">
-              <p>No text placeholders found in this SVG.</p>
-              <p className="text-sm">You can proceed directly to export.</p>
+              <p>No editable content found in this worksheet.</p>
+              <p className="text-sm">The template fields are automatically populated.</p>
             </div>
           )}
         </div>
@@ -157,15 +215,31 @@ export const SVGTextEditor: React.FC<SVGTextEditorProps> = ({
             </div>
 
             <div className="border border-gray-200 rounded-lg p-4 bg-white overflow-auto max-h-96">
-              <div
-                className="flex items-center justify-center"
-                style={{ maxWidth: '100%' }}
-              >
+              <div className="flex items-center justify-center min-h-[300px]">
                 <div
-                  className="shadow-sm rounded overflow-hidden bg-white max-w-full"
-                  style={{ transform: 'scale(0.8)', transformOrigin: 'center' }}
-                  dangerouslySetInnerHTML={{ __html: previewContent }}
-                />
+                  className="svg-container"
+                  style={{
+                    transform: 'scale(0.6)',
+                    transformOrigin: 'center top',
+                    transition: 'transform 0.2s ease',
+                    maxWidth: '100%'
+                  }}
+                >
+                  {/* Use same inline SVG approach as SVGPreview for consistency */}
+                  <div
+                    className="inline-block shadow-lg rounded-lg overflow-hidden bg-white"
+                    style={{ maxWidth: '100%', height: 'auto' }}
+                  >
+                    <svg
+                      style={{ display: 'block', maxWidth: '100%', height: 'auto' }}
+                      dangerouslySetInnerHTML={{ __html: processedSVG.replace('<svg', '<g').replace('</svg>', '</g>') }}
+                      viewBox="0 0 800 1000"
+                      width="800"
+                      height="1000"
+                      xmlns="http://www.w3.org/2000/svg"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
           </div>

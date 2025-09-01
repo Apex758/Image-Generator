@@ -900,48 +900,100 @@ class SVGService:
         try:
             output_path = os.path.join(self.exports_dir, f"{filename}.pdf")
             
+            # Clean SVG content for better compatibility
+            clean_svg = self._clean_svg_for_export(svg_content)
+            
             # Use cairosvg to convert SVG to PDF
-            cairosvg.svg2pdf(bytestring=svg_content.encode('utf-8'), write_to=output_path)
+            cairosvg.svg2pdf(
+                bytestring=clean_svg.encode('utf-8'),
+                write_to=output_path,
+                output_width=800,
+                output_height=1000
+            )
             
             return output_path
         except Exception as e:
             logger.error(f"Error exporting SVG to PDF: {e}")
             raise HTTPException(status_code=500, detail=f"Error exporting to PDF: {str(e)}")
-    
+
     def export_svg_to_png(self, svg_content: str, filename: str) -> str:
         """Export SVG to PNG format."""
         try:
             output_path = os.path.join(self.exports_dir, f"{filename}.png")
             
+            # Clean SVG content for better compatibility
+            clean_svg = self._clean_svg_for_export(svg_content)
+            
             # Use cairosvg to convert SVG to PNG
-            cairosvg.svg2png(bytestring=svg_content.encode('utf-8'), write_to=output_path, dpi=300)
+            cairosvg.svg2png(
+                bytestring=clean_svg.encode('utf-8'),
+                write_to=output_path,
+                dpi=300,
+                output_width=2400,  # 800 * 3 for high quality
+                output_height=3000   # 1000 * 3 for high quality
+            )
             
             return output_path
         except Exception as e:
             logger.error(f"Error exporting SVG to PNG: {e}")
             raise HTTPException(status_code=500, detail=f"Error exporting to PNG: {str(e)}")
-    
+
     def export_svg_to_docx(self, svg_content: str, filename: str) -> str:
         """Export SVG to DOCX format."""
         try:
-            # First convert SVG to PNG
-            temp_png = tempfile.NamedTemporaryFile(delete=False, suffix='.png')
-            cairosvg.svg2png(bytestring=svg_content.encode('utf-8'), write_to=temp_png.name, dpi=300)
+            # First convert SVG to PNG in memory
+            clean_svg = self._clean_svg_for_export(svg_content)
+            png_data = cairosvg.svg2png(
+                bytestring=clean_svg.encode('utf-8'),
+                dpi=300,
+                output_width=2400,
+                output_height=3000
+            )
             
             # Create DOCX document
             doc = Document()
-            doc.add_picture(temp_png.name, width=Inches(7.5))
+            
+            # Add the image to document
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as temp_file:
+                temp_file.write(png_data)
+                temp_file.flush()
+                
+                # Add to document with appropriate size
+                doc.add_picture(temp_file.name, width=Inches(8.5))  # Letter size width
+                
+                # Clean up temp file
+                os.unlink(temp_file.name)
             
             output_path = os.path.join(self.exports_dir, f"{filename}.docx")
             doc.save(output_path)
-            
-            # Clean up temp file
-            os.unlink(temp_png.name)
             
             return output_path
         except Exception as e:
             logger.error(f"Error exporting SVG to DOCX: {e}")
             raise HTTPException(status_code=500, detail=f"Error exporting to DOCX: {str(e)}")
+
+    def _clean_svg_for_export(self, svg_content: str) -> str:
+        """Clean SVG content for better export compatibility."""
+        try:
+            # Remove any XML declarations
+            content = re.sub(r'<\?xml[^>]*\?>', '', svg_content)
+            
+            # Ensure proper SVG namespace
+            if 'xmlns="http://www.w3.org/2000/svg"' not in content:
+                content = content.replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg"')
+            
+            # Clean up namespace prefixes
+            content = re.sub(r'ns\d+:', '', content)
+            content = re.sub(r'xmlns:ns\d+="[^"]*"', '', content)
+            
+            # Ensure viewBox exists
+            if 'viewBox=' not in content:
+                content = content.replace('<svg', '<svg viewBox="0 0 800 1000"')
+            
+            return content.strip()
+        except Exception as e:
+            logger.error(f"Error cleaning SVG: {e}")
+            return svg_content
 
 # Initialize SVG service
 svg_service = SVGService()
@@ -1227,6 +1279,7 @@ async def generate_svg(request: SVGGenerationRequest):
             # Use AI to analyze the prompt and generate content
             generated_images = []
             text_replacements = {}
+            ai_generated_placeholders = []
 
             # ALWAYS populate basic fields first
             text_replacements["subject"] = request.subject
@@ -1303,22 +1356,28 @@ async def generate_svg(request: SVGGenerationRequest):
                         
                         # Set instructions
                         text_replacements["instructions"] = content_data.get("instructions", text_replacements["instructions"])
+                        ai_generated_placeholders.append("instructions")
                         
                         # Set individual questions
                         questions = content_data.get("questions", default_questions)
                         for i in range(min(request.num_questions, len(questions))):
                             text_replacements[f"question{i+1}"] = questions[i]
+                            ai_generated_placeholders.append(f"question{i+1}")
                         
                         # Fill any remaining question slots
                         for i in range(len(questions), request.num_questions):
                             if i < len(default_questions):
                                 text_replacements[f"question{i+1}"] = default_questions[i]
+                                ai_generated_placeholders.append(f"question{i+1}")
 
                     except Exception as e:
                         logger.error(f"Error parsing AI content response: {e}")
                         # Use default questions
+                        text_replacements["instructions"] = default_questions[0]
+                        ai_generated_placeholders.append("instructions")
                         for i in range(request.num_questions):
                             text_replacements[f"question{i+1}"] = default_questions[i] if i < len(default_questions) else f"Question {i+1} about {request.topic}."
+                            ai_generated_placeholders.append(f"question{i+1}")
 
             # Step 3: Embed images into SVG
             if generated_images:
@@ -1330,16 +1389,12 @@ async def generate_svg(request: SVGGenerationRequest):
                     # Continue without embedding
 
             # Step 4: Replace text placeholders
-            try:
-                svg_content = svg_service.replace_text_placeholders(svg_content, text_replacements)
-                logger.info(f"Successfully replaced {len(text_replacements)} text placeholders")
-            except Exception as replace_error:
-                logger.error(f"Error replacing text: {replace_error}")
+            svg_content = svg_service.replace_text_placeholders(svg_content, text_replacements)
             
-            # Extract placeholders for frontend
-            placeholders = svg_service.extract_placeholders(svg_content)
+            # Extract only AI-generated placeholders for editing
+            editable_placeholders = ai_generated_placeholders
             
-            logger.info(f"Generated SVG with {len(generated_images)} images and {len(placeholders)} placeholders")
+            logger.info(f"Generated SVG with {len(generated_images)} images and {len(editable_placeholders)} editable placeholders")
             
             # Save the generated SVG to a file
             svg_id = str(uuid.uuid4())
@@ -1363,7 +1418,7 @@ async def generate_svg(request: SVGGenerationRequest):
             return SVGGenerationResponse(
                 svg_content=svg_content,
                 template_id=template_id,
-                placeholders=placeholders,
+                placeholders=editable_placeholders,  # Only return AI-generated ones
                 images_generated=generated_images
             )
             
