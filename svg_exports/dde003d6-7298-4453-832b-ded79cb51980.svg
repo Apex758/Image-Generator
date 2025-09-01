@@ -1,0 +1,64 @@
+<ns0:svg xmlns:ns0="http://www.w3.org/2000/svg" width="800" height="1000" viewBox="0 0 800 1000">
+  <ns0:defs>
+    <ns0:style>
+      .title { font-family: Arial, sans-serif; font-size: 18px; font-weight: bold; fill: #2c3e50; }
+      .subtitle { font-family: Arial, sans-serif; font-size: 14px; fill: #34495e; }
+      .small { font-family: Arial, sans-serif; font-size: 12px; fill: #2c3e50; }
+      .instruction { font-family: Arial, sans-serif; font-size: 13px; fill: #2c3e50; font-weight: bold; }
+      .question { font-family: Arial, sans-serif; font-size: 12px; fill: #2c3e50; }
+      .answer-line { stroke: #bdc3c7; stroke-width: 1; fill: none; }
+    </ns0:style>
+  </ns0:defs>
+  
+  
+  <ns0:rect width="800" height="1000" fill="#ffffff" stroke="#ecf0f1" stroke-width="2" />
+  
+  
+  <ns0:rect x="10" y="10" width="780" height="40" fill="#ffffff" stroke="#000000" stroke-width="1" />
+  <ns0:text x="50" y="25" class="title" id="placeholder_subject">[SUBJECT] - Grade [GRADE]</ns0:text>
+  <ns0:text x="50" y="35" class="small">Name: _______________</ns0:text>
+  <ns0:text x="500" y="35" class="small">Date: ______</ns0:text>
+  
+  
+  <ns0:text x="400" y="70" class="instruction" text-anchor="middle" id="placeholder_topic">Topic - [TOPIC]</ns0:text>
+  
+  
+  <ns0:rect x="200" y="100" width="400" height="300" fill="#ecf0f1" stroke="#bdc3c7" stroke-width="2" stroke-dasharray="5,5" />
+  <ns0:text x="400" y="250" text-anchor="middle" class="question" id="placeholder_image">[IMAGE_HERE]</ns0:text>
+  
+  
+  <ns0:text x="50" y="430" class="instruction" id="placeholder_instructions">Look at the picture and fill in the blanks with the correct words to complete the sentences.</ns0:text>
+  
+  
+  <ns0:text x="50" y="470" class="title">Questions:</ns0:text>
+  
+  
+  <ns0:text x="50" y="500" class="question" id="placeholder_question1">The kids are flying a ______________ in the sky.</ns0:text>
+  <ns0:line x1="50" y1="515" x2="750" y2="515" class="answer-line" />
+  <ns0:line x1="50" y1="535" x2="750" y2="535" class="answer-line" />
+  
+  
+  <ns0:text x="50" y="570" class="question" id="placeholder_question2">The weather is ______________ with the sun shining brightly.</ns0:text>
+  <ns0:line x1="50" y1="585" x2="750" y2="585" class="answer-line" />
+  <ns0:line x1="50" y1="605" x2="750" y2="605" class="answer-line" />
+  
+  
+  <ns0:text x="50" y="640" class="question" id="placeholder_question3">______________ are gathering in the background, indicating a change in weather.</ns0:text>
+  <ns0:line x1="50" y1="655" x2="750" y2="655" class="answer-line" />
+  <ns0:line x1="50" y1="675" x2="750" y2="675" class="answer-line" />
+  
+  
+  <ns0:text x="50" y="710" class="question" id="placeholder_question4">The kids are playing at the ______________.</ns0:text>
+  <ns0:line x1="50" y1="725" x2="750" y2="725" class="answer-line" />
+  <ns0:line x1="50" y1="745" x2="750" y2="745" class="answer-line" />
+  
+  
+  <ns0:text x="50" y="780" class="question" id="placeholder_question5">The kite is flying ______________ in the air.</ns0:text>
+  <ns0:line x1="50" y1="795" x2="750" y2="795" class="answer-line" />
+  <ns0:line x1="50" y1="815" x2="750" y2="815" class="answer-line" />
+  
+  
+  <ns0:rect x="20" y="870" width="760" height="60" fill="#95a5a6" opacity="0.1" />
+  <ns0:text x="40" y="895" class="subtitle">Name: ________________________</ns0:text>
+  <ns0:text x="400" y="895" class="subtitle">Date: ________________________</ns0:text>
+</ns0:svg>

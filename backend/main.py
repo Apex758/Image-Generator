@@ -654,7 +654,7 @@ def check_nltk_resources():
             exit(1)
 
 # Check for NLTK resources on startup
-check_nltk_resources()
+#check_nltk_resources()
 
 class AIService:
     """Service for interacting with AI models via OpenRouter."""
@@ -800,42 +800,52 @@ class SVGService:
         """Extract placeholder IDs from SVG content."""
         placeholders = []
         try:
-            root = ET.fromstring(svg_content)
-            for elem in root.iter():
-                if elem.get('id') and elem.get('id').startswith('placeholder_'):
-                    placeholder_name = elem.get('id').replace('placeholder_', '')
-                    placeholders.append(placeholder_name)
+            # Find bracket-style placeholders: [placeholder]
+            import re
+            bracket_matches = re.findall(r'\[([^\]]+)\]', svg_content)
+            placeholders.extend(bracket_matches)
+            
+            # Also find curly brace placeholders: {placeholder}
+            brace_matches = re.findall(r'\{([^}]+)\}', svg_content)
+            placeholders.extend(brace_matches)
+            
+            # Remove duplicates while preserving order
+            unique_placeholders = []
+            for placeholder in placeholders:
+                if placeholder not in unique_placeholders:
+                    unique_placeholders.append(placeholder)
+            
+            logger.info(f"Extracted {len(unique_placeholders)} placeholders: {unique_placeholders}")
+            return unique_placeholders
+            
         except Exception as e:
             logger.error(f"Error extracting placeholders: {e}")
-        
-        return placeholders
+            return []
     
     def replace_text_placeholders(self, svg_content: str, replacements: Dict[str, str]) -> str:
         """Replace text placeholders in SVG content."""
         try:
-            # Parse SVG
-            root = ET.fromstring(svg_content)
+            processed_content = svg_content
             
-            # Replace text placeholders
-            for elem in root.iter():
-                if elem.get('id') and elem.get('id').startswith('placeholder_'):
-                    placeholder_name = elem.get('id').replace('placeholder_', '')
-                    if placeholder_name in replacements:
-                        # Replace the text content
-                        replacement_text = replacements[placeholder_name]
-                        if elem.text and '[' in elem.text and ']' in elem.text:
-                            elem.text = replacement_text
-                        elif elem.text:
-                            elem.text = replacement_text
-                        else:
-                            elem.text = "" # Clear placeholder if no replacement
+            # Replace bracket-style placeholders: [placeholder] -> replacement
+            for placeholder, replacement in replacements.items():
+                if replacement:  # Only replace if replacement is not empty
+                    # Handle both [placeholder] and placeholder patterns
+                    patterns = [
+                        f'[{placeholder}]',
+                        f'{{{placeholder}}}',  # Also handle curly braces
+                        f'placeholder_{placeholder}',  # Handle ID-style placeholders
+                    ]
+                    
+                    for pattern in patterns:
+                        processed_content = processed_content.replace(pattern, replacement)
             
-            # Convert back to string
-            return ET.tostring(root, encoding='unicode')
+            logger.info(f"Text replacement completed for {len(replacements)} placeholders")
+            return processed_content
             
         except Exception as e:
             logger.error(f"Error replacing text placeholders: {e}")
-            raise HTTPException(status_code=500, detail=f"Error processing SVG: {str(e)}")
+            return svg_content
     
     async def embed_images_in_svg(self, svg_content: str, image_urls: List[str]) -> str:
         """Embed generated images into SVG placeholders."""
@@ -843,48 +853,47 @@ class SVGService:
             root = ET.fromstring(svg_content)
             image_index = 0
             
-            # Create a parent map to look up parent elements
-            parent_map = {c: p for p in root.iter() for c in p}
-            
-            # Find image placeholders and replace with actual images
+            # Look for image placeholder elements by ID
             for elem in root.iter():
-                if (elem.get('id') and elem.get('id').startswith('placeholder_image') and
-                    image_index < len(image_urls)):
-                    
-                    # Get the parent rect element for positioning
-                    parent = parent_map.get(elem)
-                    if parent is not None and 'rect' in parent.tag:
-                        x = parent.get('x', '0')
-                        y = parent.get('y', '0')
-                        width = parent.get('width', '100')
-                        height = parent.get('height', '100')
+                if (elem.get('id') == 'placeholder_image' and image_index < len(image_urls)):
+                    # Get the image file path
+                    image_path = os.path.join(IMAGES_DIR, os.path.basename(image_urls[image_index]))
+                    if os.path.exists(image_path):
+                        with open(image_path, 'rb') as img_file:
+                            img_data = base64.b64encode(img_file.read()).decode()
                         
-                        # Read image and convert to base64
-                        image_path = os.path.join(IMAGES_DIR, os.path.basename(image_urls[image_index]))
-                        if os.path.exists(image_path):
-                            with open(image_path, 'rb') as img_file:
-                                img_data = base64.b64encode(img_file.read()).decode()
-                                
-                            # Create image element
-                            img_elem = ET.Element('image')
-                            img_elem.set('x', x)
-                            img_elem.set('y', y)
-                            img_elem.set('width', width)
-                            img_elem.set('height', height)
-                            img_elem.set('href', f'data:image/png;base64,{img_data}')
-                            img_elem.set('preserveAspectRatio', 'xMidYMid meet')
-                            
-                            # Replace the placeholder
+                        # Create image element to replace the placeholder
+                        img_elem = ET.Element('image')
+                        
+                        # For Layout 1, the image area is x="200" y="90" width="400" height="300"
+                        img_elem.set('x', '200')
+                        img_elem.set('y', '90')
+                        img_elem.set('width', '400')
+                        img_elem.set('height', '300')
+                        img_elem.set('href', f'data:image/png;base64,{img_data}')
+                        img_elem.set('preserveAspectRatio', 'xMidYMid meet')
+                        
+                        # Find parent element and replace
+                        parent = elem.getparent() if hasattr(elem, 'getparent') else None
+                        if parent is not None:
+                            parent_index = list(parent).index(elem)
                             parent.remove(elem)
-                            parent.append(img_elem)
-                            
-                            image_index += 1
+                            parent.insert(parent_index, img_elem)
+                        else:
+                            # If no parent found, replace in root
+                            root_index = list(root).index(elem)
+                            root.remove(elem)
+                            root.insert(root_index, img_elem)
+                        
+                        image_index += 1
+                        logger.info(f"Embedded image {image_index}: {image_urls[image_index-1]}")
             
             return ET.tostring(root, encoding='unicode')
             
         except Exception as e:
             logger.error(f"Error embedding images in SVG: {e}")
-            raise HTTPException(status_code=500, detail=f"Error embedding images: {str(e)}")
+            # Return original content if embedding fails
+            return svg_content
     
     def export_svg_to_pdf(self, svg_content: str, filename: str) -> str:
         """Export SVG to PDF format."""
@@ -1219,117 +1228,115 @@ async def generate_svg(request: SVGGenerationRequest):
             generated_images = []
             text_replacements = {}
 
+            # ALWAYS populate basic fields first
+            text_replacements["subject"] = request.subject
+            text_replacements["grade"] = request.grade_level
+            text_replacements["topic"] = request.topic
+
             ai_service = AIService()
 
             if request.content_type == "image_comprehension":
+                # Step 1: Generate the image first
+                image_prompt = f"Educational illustration showing {request.topic} for {request.subject} class, grade {request.grade_level}. Clear, colorful, educational style with no text or labels visible."
+                
+                try:
+                    if request.aspect_ratio == "square": width, height = 512, 512
+                    elif request.aspect_ratio == "landscape": width, height = 768, 512
+                    elif request.aspect_ratio == "portrait": width, height = 512, 768
+                    else: width, height = 512, 512
+                    
+                    if USE_HF_API:
+                        image = await generate_with_hf_api(image_prompt, width, height)
+                    else:
+                        image = generate_with_local_model(image_prompt, width, height)
+                    
+                    image_id = str(uuid.uuid4())
+                    filename = f"svg_{image_id}.png"
+                    filepath = os.path.join(IMAGES_DIR, filename)
+                    image.save(filepath)
+                    generated_images.append(f"/static/{filename}")
+                    logger.info(f"Successfully generated image: {filename}")
+                    
+                except Exception as img_error:
+                    logger.error(f"Error generating image: {img_error}")
+                    # Continue without image
+
+                # Step 2: Generate AI content based on the image concept
                 analysis_prompt = f"""
-                Create educational content for an image comprehension worksheet:
-                
-                Subject: {request.subject}
-                Topic: {request.topic}
-                Grade Level: {request.grade_level}
-                Layout Style: {request.layout_style}
-                Number of Questions: {request.num_questions}
-                Question Types: {', '.join(request.question_types)}
-                
+                Create educational content for an image comprehension worksheet about {request.topic} in {request.subject} for grade {request.grade_level} students.
+
+                The image shows: {image_prompt}
+
                 Generate:
-                1. A detailed, one-sentence art prompt for an educational illustration for the worksheet.
-                2. Appropriate instructions for students based on the questions.
-                3. {request.num_questions} questions about the scene described in the art prompt, using the specified question types.
-                4. For "fill_blank" questions, create sentences with blanks. For "multiple_choice", provide options A, B, C, D.
-                5. For "short_answer", create open-ended questions.
-                6. Make all content age-appropriate for {request.grade_level}.
-                
-                Return as a single JSON object with three fields: "image_prompt" (a string), "instructions" (a string), and "questions" (an array of objects, each with "type" and "text" fields, and "options" if applicable).
+                1. Clear, age-appropriate instructions for students
+                2. {request.num_questions} DISTINCT questions about the image/topic, each focusing on different aspects:
+                   - Question 1: Basic observation/identification
+                   - Question 2: Details or specific elements
+                   - Question 3: Analysis or interpretation
+                   - Question 4: Application or connection to learning
+                   - Question 5: Creative or critical thinking
+
+                Return as JSON with fields: "instructions" and "questions" (array of strings).
+                Make each question unique and educational.
                 """
-                system_message = "You are an expert educational content creator. Generate worksheet content as a valid JSON object with no extra text."
+                
+                system_message = "You are an expert educational content creator. Generate age-appropriate worksheet content as valid JSON only."
                 
                 response = ai_service.query_model(analysis_prompt, system_message)
                 
-                image_prompt = f"A vibrant educational illustration for {request.subject} on {request.topic}."
+                # Default content if AI fails
+                text_replacements["instructions"] = f"Look at the image and answer the questions about {request.topic}."
+                default_questions = [
+                    f"What do you see in this image related to {request.topic}?",
+                    f"Describe two important details about {request.topic} shown in the picture.",
+                    f"How does this image help explain {request.topic}?",
+                    f"What can you learn about {request.topic} from this picture?",
+                    f"How would you use this information about {request.topic} in real life?"
+                ]
+                
                 if response:
                     try:
                         if "```json" in response:
                             response = re.search(r'```json\s*([\s\S]*?)\s*```', response).group(1)
                         
                         content_data = json.loads(response.strip())
-                        image_prompt = content_data.get("image_prompt", image_prompt)
-                        text_replacements["instructions"] = content_data.get("instructions", "")
                         
-                        questions = content_data.get("questions", [])
-                        for i, q in enumerate(questions[:request.num_questions]):
-                            q_text = q.get("text", "")
-                            if q.get("type") == "multiple_choice" and q.get("options"):
-                                options = " ".join([f"{key}) {value}" for key, value in q.get("options", {}).items()])
-                                q_text = f"{q_text} {options}"
-                            text_replacements[f"question{i+1}"] = q_text
+                        # Set instructions
+                        text_replacements["instructions"] = content_data.get("instructions", text_replacements["instructions"])
+                        
+                        # Set individual questions
+                        questions = content_data.get("questions", default_questions)
+                        for i in range(min(request.num_questions, len(questions))):
+                            text_replacements[f"question{i+1}"] = questions[i]
+                        
+                        # Fill any remaining question slots
+                        for i in range(len(questions), request.num_questions):
+                            if i < len(default_questions):
+                                text_replacements[f"question{i+1}"] = default_questions[i]
 
                     except Exception as e:
                         logger.error(f"Error parsing AI content response: {e}")
-                        text_replacements["instructions"] = "Look at the image and answer the questions."
+                        # Use default questions
                         for i in range(request.num_questions):
-                            text_replacements[f"question{i+1}"] = f"Question {i+1}."
-                
-                image_prompts = [image_prompt]
+                            text_replacements[f"question{i+1}"] = default_questions[i] if i < len(default_questions) else f"Question {i+1} about {request.topic}."
 
-            else: # Other content types
-                analysis_prompt = f"""
-                Create {request.image_count} educational image prompts for {request.subject} content
-                for grade {request.grade_level} students on the topic of {request.topic}.
-                The content type is {request.content_type}.
-                
-                User prompt: {request.custom_instructions or ""}
-                
-                Generate detailed, educational image prompts suitable for the {request.aspect_ratio} aspect ratio.
-                Return as JSON array with objects containing 'prompt' field.
-                """
-                system_message = "You are an expert educational content creator. Generate appropriate image prompts for educational materials. Always respond with properly formatted JSON only."
-                response = ai_service.query_model(analysis_prompt, system_message)
-                
-                image_prompts = []
-                if response:
-                    try:
-                        if "```json" in response:
-                            response = re.search(r'```json\s*([\s\S]*?)\s*```', response).group(1)
-                        
-                        prompts_data = json.loads(response.strip())
-                        for item in prompts_data:
-                            if isinstance(item, dict) and 'prompt' in item:
-                                image_prompts.append(item['prompt'])
-                    except:
-                        image_prompts = [f"Educational illustration for {request.subject} on {request.topic}"]
-                if not image_prompts:
-                     image_prompts = [f"Educational illustration for {request.subject} on {request.topic}"]
-
-
-            # Generate and embed images
-            if request.image_count > 0 and image_prompts:
-                for i, img_prompt in enumerate(image_prompts[:request.image_count]):
-                    try:
-                        if request.aspect_ratio == "square": width, height = 512, 512
-                        elif request.aspect_ratio == "landscape": width, height = 768, 512
-                        elif request.aspect_ratio == "portrait": width, height = 512, 768
-                        else: width, height = 512, 512
-                        
-                        if USE_HF_API: image = await generate_with_hf_api(img_prompt, width, height)
-                        else: image = generate_with_local_model(img_prompt, width, height)
-                        
-                        image_id = str(uuid.uuid4())
-                        filename = f"svg_{image_id}.png"
-                        filepath = os.path.join(IMAGES_DIR, filename)
-                        image.save(filepath)
-                        generated_images.append(f"/static/{filename}")
-                    except Exception as img_error:
-                        logger.error(f"Error generating image {i}: {img_error}")
-                        continue
-                
-                if generated_images:
+            # Step 3: Embed images into SVG
+            if generated_images:
+                try:
                     svg_content = await svg_service.embed_images_in_svg(svg_content, generated_images)
+                    logger.info(f"Successfully embedded {len(generated_images)} images")
+                except Exception as embed_error:
+                    logger.error(f"Error embedding images: {embed_error}")
+                    # Continue without embedding
 
-            # Populate text placeholders
-            svg_content = svg_service.replace_text_placeholders(svg_content, text_replacements)
+            # Step 4: Replace text placeholders
+            try:
+                svg_content = svg_service.replace_text_placeholders(svg_content, text_replacements)
+                logger.info(f"Successfully replaced {len(text_replacements)} text placeholders")
+            except Exception as replace_error:
+                logger.error(f"Error replacing text: {replace_error}")
             
-            # Extract placeholders
+            # Extract placeholders for frontend
             placeholders = svg_service.extract_placeholders(svg_content)
             
             logger.info(f"Generated SVG with {len(generated_images)} images and {len(placeholders)} placeholders")
@@ -1352,6 +1359,7 @@ async def generate_svg(request: SVGGenerationRequest):
             }
             svg_metadata.append(new_svg_item)
             await save_svg_metadata(svg_metadata)
+            
             return SVGGenerationResponse(
                 svg_content=svg_content,
                 template_id=template_id,
@@ -1364,7 +1372,6 @@ async def generate_svg(request: SVGGenerationRequest):
     except Exception as e:
         logger.error(f"Error generating SVG: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to generate SVG: {str(e)}")
-
 @app.post("/api/process-svg", response_model=SVGProcessingResponse)
 async def process_svg(request: SVGProcessingRequest):
     """Replace text placeholders in SVG content."""

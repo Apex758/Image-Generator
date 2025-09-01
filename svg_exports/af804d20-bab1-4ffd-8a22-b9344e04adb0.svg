@@ -1,0 +1,58 @@
+<ns0:svg xmlns:ns0="http://www.w3.org/2000/svg" width="800" height="1000" viewBox="0 0 800 1000">
+  <ns0:defs>
+    <ns0:style>
+      .title { font-family: Arial, sans-serif; font-size: 20px; font-weight: bold; fill: #2c3e50; }
+      .subtitle { font-family: Arial, sans-serif; font-size: 14px; fill: #34495e; }
+      .small { font-family: Arial, sans-serif; font-size: 12px; fill: #2c3e50; }
+      .instruction { font-family: Arial, sans-serif; font-size: 13px; fill: #2c3e50; font-weight: bold; }
+      .question { font-family: Arial, sans-serif; font-size: 12px; fill: #2c3e50; }
+      .placeholder { font-family: Arial, sans-serif; font-size: 14px; fill: #7f8c8d; }
+      .answer-line { stroke: #bdc3c7; stroke-width: 1; fill: none; }
+    </ns0:style>
+  </ns0:defs>
+  
+  
+  <ns0:rect width="800" height="1000" fill="#ffffff" stroke="#ecf0f1" stroke-width="2" />
+  
+  
+  <ns0:rect x="10" y="10" width="780" height="40" fill="#ffffff" stroke="#000000" stroke-width="1" />
+  <ns0:text x="50" y="25" class="title" id="placeholder_subject">[SUBJECT]</ns0:text>
+  <ns0:text x="50" y="35" class="small" id="placeholder_name">Name: _______________</ns0:text>
+  <ns0:text x="500" y="35" class="small" id="placeholder_date">Date: ______</ns0:text>
+  
+  
+  <ns0:text x="400" y="70" class="instruction" text-anchor="middle" id="placeholder_topic">Topic - [TOPIC]</ns0:text>
+  
+  
+  <ns0:rect x="200" y="90" width="400" height="300" fill="#e8f4fd" stroke="#bdc3c7" stroke-width="2" stroke-dasharray="5,5" />
+  <ns0:text x="400" y="245" text-anchor="middle" class="placeholder" id="placeholder_image">[IMAGE HERE]</ns0:text>
+  
+  
+  <ns0:text x="50" y="420" class="instruction" id="placeholder_instructions">Look at the picture and fill in the blanks to complete the sentences about the weather.</ns0:text>
+  
+  
+  <ns0:text x="50" y="460" class="question" id="placeholder_question1">The weather is _______________ because the sun is shining brightly.</ns0:text>
+  <ns0:line x1="50" y1="480" x2="750" y2="480" class="answer-line" />
+  <ns0:line x1="50" y1="500" x2="750" y2="500" class="answer-line" />
+  
+  <ns0:text x="50" y="540" class="question" id="placeholder_question2">The kite is flying high in the _______________ sky.</ns0:text>
+  <ns0:line x1="50" y1="560" x2="750" y2="560" class="answer-line" />
+  <ns0:line x1="50" y1="580" x2="750" y2="580" class="answer-line" />
+  
+  <ns0:text x="50" y="620" class="question" id="placeholder_question3">There are a few _______________ clouds floating in the sky.</ns0:text>
+  <ns0:line x1="50" y1="640" x2="750" y2="640" class="answer-line" />
+  <ns0:line x1="50" y1="660" x2="750" y2="660" class="answer-line" />
+  
+  <ns0:text x="50" y="700" class="question" id="placeholder_question4">The weather vane on the hill is showing the direction of the _______________.</ns0:text>
+  <ns0:line x1="50" y1="720" x2="750" y2="720" class="answer-line" />
+  <ns0:line x1="50" y1="740" x2="750" y2="740" class="answer-line" />
+  
+  <ns0:text x="50" y="780" class="question" id="placeholder_question5">The children are happy and _______________ in the sunny weather.</ns0:text>
+  <ns0:line x1="50" y1="800" x2="750" y2="800" class="answer-line" />
+  <ns0:line x1="50" y1="820" x2="750" y2="820" class="answer-line" />
+  
+  
+  <ns0:text x="50" y="870" class="instruction">Activity:</ns0:text>
+  <ns0:text x="50" y="890" class="small">Draw or write about what you learned from this image:</ns0:text>
+  <ns0:rect x="50" y="900" width="700" height="80" fill="none" stroke="#bdc3c7" stroke-width="1" stroke-dasharray="3,3" />
+</ns0:svg>

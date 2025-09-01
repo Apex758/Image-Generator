@@ -19,5 +19,26 @@
     "url": "/exports/bafd2987-ab2b-4120-bd0e-3b084d75a803.svg",
     "template_id": "image_comprehension",
     "created_at": "2025-09-01T04:12:50.873549"
+  },
+  {
+    "id": "af804d20-bab1-4ffd-8a22-b9344e04adb0",
+    "filename": "af804d20-bab1-4ffd-8a22-b9344e04adb0.svg",
+    "url": "/exports/af804d20-bab1-4ffd-8a22-b9344e04adb0.svg",
+    "template_id": "image_comprehension_layout1",
+    "created_at": "2025-09-01T11:30:12.949996"
+  },
+  {
+    "id": "dde003d6-7298-4453-832b-ded79cb51980",
+    "filename": "dde003d6-7298-4453-832b-ded79cb51980.svg",
+    "url": "/exports/dde003d6-7298-4453-832b-ded79cb51980.svg",
+    "template_id": "image_comprehension_layout1",
+    "created_at": "2025-09-01T11:35:12.616195"
+  },
+  {
+    "id": "28ca5d6b-1b15-47c2-8e8f-a45fda93e0c5",
+    "filename": "28ca5d6b-1b15-47c2-8e8f-a45fda93e0c5.svg",
+    "url": "/exports/28ca5d6b-1b15-47c2-8e8f-a45fda93e0c5.svg",
+    "template_id": "image_comprehension_layout1",
+    "created_at": "2025-09-01T12:08:10.224499"
   }
 ]
