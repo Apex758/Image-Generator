@@ -24,6 +24,12 @@ from nltk.tokenize import sent_tokenize, word_tokenize
 from nltk.corpus import stopwords
 from nltk.tag import pos_tag
 import logging
+import xml.etree.ElementTree as ET
+from docx import Document
+from docx.shared import Inches
+import cairosvg
+import tempfile
+import io
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -49,13 +55,17 @@ app.add_middleware(
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.dirname(BASE_DIR)
 IMAGES_DIR = os.path.join(ROOT_DIR, "generated_images")
+SVG_TEMPLATES_DIR = os.path.join(BASE_DIR, "svg_templates")
+SVG_EXPORTS_DIR = os.path.join(ROOT_DIR, "svg_exports")
 
 # Create directories
 os.makedirs(IMAGES_DIR, exist_ok=True)
 os.makedirs(os.path.join(ROOT_DIR, "static"), exist_ok=True)
+os.makedirs(SVG_EXPORTS_DIR, exist_ok=True)
 
 # Mount static files
 app.mount("/static", StaticFiles(directory=IMAGES_DIR), name="static")
+app.mount("/exports", StaticFiles(directory=SVG_EXPORTS_DIR), name="exports")
 
 # Configuration
 USE_HF_API = os.getenv("USE_HF_API", "true").lower() == "true"
@@ -65,6 +75,7 @@ HF_API_URL = "https://api-inference.huggingface.co/models/black-forest-labs/FLUX
 # Initialize the local model (lazy loading) - only if not using HF API
 pipe = None
 metadata_file = "image_metadata.json"
+svg_metadata_file = "svg_metadata.json"
 
 def load_model():
     global pipe
@@ -85,6 +96,15 @@ def load_metadata():
 
 def save_metadata(metadata):
     with open(metadata_file, 'w') as f:
+        json.dump(metadata, f, indent=2)
+def load_svg_metadata():
+    if os.path.exists(svg_metadata_file):
+        with open(svg_metadata_file, 'r') as f:
+            return json.load(f)
+    return []
+
+def save_svg_metadata(metadata):
+    with open(svg_metadata_file, 'w') as f:
         json.dump(metadata, f, indent=2)
 
 async def generate_with_hf_api(prompt: str, width: int = 1024, height: int = 1024,
@@ -316,6 +336,106 @@ class ImagePrompt(BaseModel):
 
 class LessonPlanAnalysisResponse(BaseModel):
     image_prompts: List[ImagePrompt]
+
+class SVGGenerationRequest(BaseModel):
+    content_type: str  # "image_comprehension", "comic", "math", "worksheet"
+    subject: str
+    grade_level: str  # Changed from 'grade' to match frontend
+    grade: Optional[str] = None  # Keep for backward compatibility
+    prompt: Optional[str] = None
+    custom_instructions: Optional[str] = None  # New field for frontend compatibility
+    image_count: int = 1
+    aspect_ratio: str = "square"
+    template_id: Optional[str] = None
+    
+    def get_grade(self) -> str:
+        """Get grade from either grade_level or grade field."""
+        return self.grade_level or self.grade or ""
+    
+    def get_prompt(self) -> str:
+        """Get prompt from either prompt or custom_instructions field."""
+        return self.prompt or self.custom_instructions or ""
+
+class SVGProcessingRequest(BaseModel):
+    svg_content: str
+    text_replacements: Dict[str, str]
+    add_writing_lines: bool = False
+    
+class SVGExportRequest(BaseModel):
+    svg_content: str
+    format: str  # "pdf", "docx", "png"
+    filename: str
+
+class SVGTemplate(BaseModel):
+    id: str
+    name: str
+    description: str
+    content_type: str
+    placeholder_count: int
+
+class SVGGenerationResponse(BaseModel):
+    svg_content: str
+    template_id: str
+    placeholders: List[str]
+    images_generated: List[str]  # URLs to generated images
+
+class SVGProcessingResponse(BaseModel):
+    processed_svg: str
+    replaced_placeholders: List[str]
+
+class SVGExportResponse(BaseModel):
+    download_url: str
+    filename: str
+    format: str
+class SVGItem(BaseModel):
+    id: str
+    filename: str
+    url: str
+    template_id: str
+    created_at: str
+
+@app.get("/api/svg-items", response_model=List[SVGItem])
+async def list_svg_items():
+    """List all generated SVG items."""
+    try:
+        svg_metadata = load_svg_metadata()
+        # Return in reverse order (newest first)
+        return [SVGItem(**item) for item in reversed(svg_metadata)]
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to load SVG items: {str(e)}")
+
+@app.delete("/api/svg-items/{item_id}")
+async def delete_svg_item(item_id: str):
+    """Delete a generated SVG item."""
+    try:
+        svg_metadata = load_svg_metadata()
+        item_to_delete = None
+        updated_metadata = []
+        
+        for item in svg_metadata:
+            if item["id"] == item_id:
+                item_to_delete = item
+            else:
+                updated_metadata.append(item)
+        
+        if not item_to_delete:
+            raise HTTPException(status_code=404, detail="SVG item not found")
+        
+        # Delete file
+        filepath = os.path.join(SVG_EXPORTS_DIR, item_to_delete["filename"])
+        if os.path.exists(filepath):
+            os.remove(filepath)
+        
+        # Update metadata
+        save_svg_metadata(updated_metadata)
+        
+        return {"message": "SVG item deleted successfully"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to delete SVG item: {str(e)}")
+
 
 @app.get("/")
 async def root():
@@ -590,6 +710,222 @@ class AIService:
             logger.error(f"Error querying model: {e}")
             return None
 
+class SVGService:
+    """Service for handling SVG template operations and processing."""
+    
+    def __init__(self):
+        """Initialize the SVG service."""
+        self.templates_dir = SVG_TEMPLATES_DIR
+        self.exports_dir = SVG_EXPORTS_DIR
+        
+        # Template metadata
+        self.template_metadata = {
+            "image_comprehension": {
+                "id": "image_comprehension",
+                "name": "Image Comprehension Worksheet",
+                "description": "Template for image analysis and comprehension questions",
+                "content_type": "image_comprehension",
+                "placeholder_count": 7,
+                "placeholders": ["title", "subject", "grade", "image", "question1", "question2", "question3", "instructions"],
+                "minImages": 1,
+                "maxImages": 1
+            },
+            "comic": {
+                "id": "comic",
+                "name": "Comic Strip Template",
+                "description": "Four-panel comic strip template with speech bubbles",
+                "content_type": "comic",
+                "placeholder_count": 10,
+                "placeholders": ["title", "subject", "grade", "image1", "speech1", "image2", "speech2", "image3", "speech3", "image4", "speech4"],
+                "minImages": 2,
+                "maxImages": 4
+            },
+            "math": {
+                "id": "math",
+                "name": "Math Worksheet",
+                "description": "Template for math problems with visual aids",
+                "content_type": "math",
+                "placeholder_count": 9,
+                "placeholders": ["title", "subject", "grade", "instructions", "image", "problem1", "problem2", "problem3", "problem4", "problem5", "problem6"],
+                "minImages": 1,
+                "maxImages": 1
+            },
+            "worksheet": {
+                "id": "worksheet",
+                "name": "General Worksheet Template",
+                "description": "Flexible worksheet template with multiple sections",
+                "content_type": "worksheet",
+                "placeholder_count": 12,
+                "placeholders": ["title", "subject", "grade", "section1_title", "image1", "text1", "section2_title", "image2", "text2", "section3_title", "activity1", "activity2", "activity3", "activity4"],
+                "minImages": 1,
+                "maxImages": 4
+            }
+        }
+    
+    def get_available_templates(self) -> List[SVGTemplate]:
+        """Get list of available SVG templates."""
+        templates = []
+        for template_id, metadata in self.template_metadata.items():
+            templates.append(SVGTemplate(
+                id=metadata["id"],
+                name=metadata["name"],
+                description=metadata["description"],
+                content_type=metadata["content_type"],
+                placeholder_count=metadata["placeholder_count"]
+            ))
+        return templates
+    
+    def load_template(self, template_id: str) -> str:
+        """Load SVG template content."""
+        template_path = os.path.join(self.templates_dir, f"{template_id}.svg")
+        if not os.path.exists(template_path):
+            raise HTTPException(status_code=404, detail=f"Template {template_id} not found")
+        
+        try:
+            with open(template_path, 'r', encoding='utf-8') as f:
+                return f.read()
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error loading template: {str(e)}")
+    
+    def extract_placeholders(self, svg_content: str) -> List[str]:
+        """Extract placeholder IDs from SVG content."""
+        placeholders = []
+        try:
+            root = ET.fromstring(svg_content)
+            for elem in root.iter():
+                if elem.get('id') and elem.get('id').startswith('placeholder_'):
+                    placeholder_name = elem.get('id').replace('placeholder_', '')
+                    placeholders.append(placeholder_name)
+        except Exception as e:
+            logger.error(f"Error extracting placeholders: {e}")
+        
+        return placeholders
+    
+    def replace_text_placeholders(self, svg_content: str, replacements: Dict[str, str]) -> str:
+        """Replace text placeholders in SVG content."""
+        try:
+            # Parse SVG
+            root = ET.fromstring(svg_content)
+            
+            # Replace text placeholders
+            for elem in root.iter():
+                if elem.get('id') and elem.get('id').startswith('placeholder_'):
+                    placeholder_name = elem.get('id').replace('placeholder_', '')
+                    if placeholder_name in replacements:
+                        # Replace the text content
+                        replacement_text = replacements[placeholder_name]
+                        if elem.text and '[' in elem.text and ']' in elem.text:
+                            elem.text = replacement_text
+                        elif elem.text:
+                            elem.text = replacement_text
+            
+            # Convert back to string
+            return ET.tostring(root, encoding='unicode')
+            
+        except Exception as e:
+            logger.error(f"Error replacing text placeholders: {e}")
+            raise HTTPException(status_code=500, detail=f"Error processing SVG: {str(e)}")
+    
+    async def embed_images_in_svg(self, svg_content: str, image_urls: List[str]) -> str:
+        """Embed generated images into SVG placeholders."""
+        try:
+            root = ET.fromstring(svg_content)
+            image_index = 0
+            
+            # Create a parent map to look up parent elements
+            parent_map = {c: p for p in root.iter() for c in p}
+            
+            # Find image placeholders and replace with actual images
+            for elem in root.iter():
+                if (elem.get('id') and elem.get('id').startswith('placeholder_image') and
+                    image_index < len(image_urls)):
+                    
+                    # Get the parent rect element for positioning
+                    parent = parent_map.get(elem)
+                    if parent is not None and 'rect' in parent.tag:
+                        x = parent.get('x', '0')
+                        y = parent.get('y', '0')
+                        width = parent.get('width', '100')
+                        height = parent.get('height', '100')
+                        
+                        # Read image and convert to base64
+                        image_path = os.path.join(IMAGES_DIR, os.path.basename(image_urls[image_index]))
+                        if os.path.exists(image_path):
+                            with open(image_path, 'rb') as img_file:
+                                img_data = base64.b64encode(img_file.read()).decode()
+                                
+                            # Create image element
+                            img_elem = ET.Element('image')
+                            img_elem.set('x', x)
+                            img_elem.set('y', y)
+                            img_elem.set('width', width)
+                            img_elem.set('height', height)
+                            img_elem.set('href', f'data:image/png;base64,{img_data}')
+                            img_elem.set('preserveAspectRatio', 'xMidYMid meet')
+                            
+                            # Replace the placeholder
+                            parent.remove(elem)
+                            parent.append(img_elem)
+                            
+                            image_index += 1
+            
+            return ET.tostring(root, encoding='unicode')
+            
+        except Exception as e:
+            logger.error(f"Error embedding images in SVG: {e}")
+            raise HTTPException(status_code=500, detail=f"Error embedding images: {str(e)}")
+    
+    def export_svg_to_pdf(self, svg_content: str, filename: str) -> str:
+        """Export SVG to PDF format."""
+        try:
+            output_path = os.path.join(self.exports_dir, f"{filename}.pdf")
+            
+            # Use cairosvg to convert SVG to PDF
+            cairosvg.svg2pdf(bytestring=svg_content.encode('utf-8'), write_to=output_path)
+            
+            return output_path
+        except Exception as e:
+            logger.error(f"Error exporting SVG to PDF: {e}")
+            raise HTTPException(status_code=500, detail=f"Error exporting to PDF: {str(e)}")
+    
+    def export_svg_to_png(self, svg_content: str, filename: str) -> str:
+        """Export SVG to PNG format."""
+        try:
+            output_path = os.path.join(self.exports_dir, f"{filename}.png")
+            
+            # Use cairosvg to convert SVG to PNG
+            cairosvg.svg2png(bytestring=svg_content.encode('utf-8'), write_to=output_path, dpi=300)
+            
+            return output_path
+        except Exception as e:
+            logger.error(f"Error exporting SVG to PNG: {e}")
+            raise HTTPException(status_code=500, detail=f"Error exporting to PNG: {str(e)}")
+    
+    def export_svg_to_docx(self, svg_content: str, filename: str) -> str:
+        """Export SVG to DOCX format."""
+        try:
+            # First convert SVG to PNG
+            temp_png = tempfile.NamedTemporaryFile(delete=False, suffix='.png')
+            cairosvg.svg2png(bytestring=svg_content.encode('utf-8'), write_to=temp_png.name, dpi=300)
+            
+            # Create DOCX document
+            doc = Document()
+            doc.add_picture(temp_png.name, width=Inches(7.5))
+            
+            output_path = os.path.join(self.exports_dir, f"{filename}.docx")
+            doc.save(output_path)
+            
+            # Clean up temp file
+            os.unlink(temp_png.name)
+            
+            return output_path
+        except Exception as e:
+            logger.error(f"Error exporting SVG to DOCX: {e}")
+            raise HTTPException(status_code=500, detail=f"Error exporting to DOCX: {str(e)}")
+
+# Initialize SVG service
+svg_service = SVGService()
+
 def analyze_lesson_plan_with_ai(lesson_plan: str, max_images: int = 5) -> List[ImagePrompt]:
     """
     Use AI to analyze a lesson plan and generate appropriate image prompts.
@@ -826,6 +1162,238 @@ async def analyze_lesson_plan(request: LessonPlanAnalysisRequest):
         raise HTTPException(status_code=500, detail=f"Failed to analyze lesson plan: {error_type}: {error_msg}")
     finally:
         print("==== END: /api/analyze-lesson-plan endpoint processing ====")
+
+@app.get("/api/svg-templates", response_model=List[SVGTemplate])
+async def get_svg_templates():
+    """Get list of available SVG templates."""
+    try:
+        logger.info("Getting available SVG templates")
+        templates = svg_service.get_available_templates()
+        return templates
+    except Exception as e:
+        logger.error(f"Error getting SVG templates: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get templates: {str(e)}")
+
+@app.post("/api/generate-svg", response_model=SVGGenerationResponse)
+async def generate_svg(request: SVGGenerationRequest):
+    """Generate SVG with text placeholders and embedded images."""
+    try:
+        async with image_generation_semaphore:
+            logger.info(f"Generating SVG for content type: {request.content_type}")
+            
+            # Select template
+            template_id = request.template_id or request.content_type
+            if template_id not in svg_service.template_metadata:
+                raise HTTPException(status_code=400, detail=f"Invalid template ID: {template_id}")
+
+            # Validate image count
+            content_type_metadata = svg_service.template_metadata.get(request.content_type)
+            if content_type_metadata:
+                min_images = content_type_metadata.get("minImages", 1)
+                max_images = content_type_metadata.get("maxImages", 10)
+                if not (min_images <= request.image_count <= max_images):
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Invalid image count for {request.content_type}. Must be between {min_images} and {max_images}."
+                    )
+            
+            # Load SVG template
+            svg_content = svg_service.load_template(template_id)
+            
+            # Use AI to analyze the prompt and generate image prompts if needed
+            generated_images = []
+            if request.image_count > 0:
+                try:
+                    ai_service = AIService()
+                    
+                    # Create analysis prompt
+                    analysis_prompt = f"""
+                    Create {request.image_count} educational image prompts for {request.subject} content
+                    for grade {request.get_grade()} students. The content type is {request.content_type}.
+                    
+                    User prompt: {request.get_prompt()}
+                    
+                    Generate detailed, educational image prompts suitable for the {request.aspect_ratio} aspect ratio.
+                    Return as JSON array with objects containing 'prompt' field.
+                    """
+                    
+                    system_message = """
+                    You are an expert educational content creator. Generate appropriate image prompts
+                    for educational materials. Always respond with properly formatted JSON only.
+                    """
+                    
+                    response = ai_service.query_model(analysis_prompt, system_message)
+                    
+                    # Parse AI response to get image prompts
+                    image_prompts = []
+                    if response:
+                        try:
+                            if "```json" in response:
+                                json_match = re.search(r'```json\s*([\s\S]*?)\s*```', response)
+                                if json_match:
+                                    response = json_match.group(1)
+                            
+                            prompts_data = json.loads(response.strip())
+                            for item in prompts_data:
+                                if isinstance(item, dict) and 'prompt' in item:
+                                    image_prompts.append(item['prompt'])
+                        except:
+                            # Fallback to simple prompt
+                            image_prompts = [f"Educational illustration for {request.subject}, grade {request.grade}"]
+                    else:
+                        # Fallback prompt
+                        image_prompts = [f"Educational illustration for {request.subject}, grade {request.grade}"]
+                    
+                    # Generate images
+                    for i, img_prompt in enumerate(image_prompts[:request.image_count]):
+                        try:
+                            # Determine dimensions based on aspect ratio
+                            if request.aspect_ratio == "square":
+                                width, height = 512, 512
+                            elif request.aspect_ratio == "landscape":
+                                width, height = 768, 512
+                            elif request.aspect_ratio == "portrait":
+                                width, height = 512, 768
+                            else:
+                                width, height = 512, 512
+                            
+                            # Generate image
+                            if USE_HF_API:
+                                image = await generate_with_hf_api(img_prompt, width, height)
+                            else:
+                                image = generate_with_local_model(img_prompt, width, height)
+                            
+                            # Save image
+                            image_id = str(uuid.uuid4())
+                            filename = f"svg_{image_id}.png"
+                            filepath = os.path.join(IMAGES_DIR, filename)
+                            image.save(filepath)
+                            
+                            generated_images.append(f"/static/{filename}")
+                            
+                        except Exception as img_error:
+                            logger.error(f"Error generating image {i}: {img_error}")
+                            # Continue with other images
+                            continue
+                    
+                    # Embed images in SVG
+                    if generated_images:
+                        svg_content = await svg_service.embed_images_in_svg(svg_content, generated_images)
+                
+                except Exception as ai_error:
+                    logger.error(f"Error in AI-based image generation: {ai_error}")
+                    # Continue without images
+                    pass
+            
+            # Extract placeholders
+            placeholders = svg_service.extract_placeholders(svg_content)
+            
+            logger.info(f"Generated SVG with {len(generated_images)} images and {len(placeholders)} placeholders")
+            
+            # Save the generated SVG to a file
+            svg_id = str(uuid.uuid4())
+            svg_filename = f"{svg_id}.svg"
+            svg_filepath = os.path.join(SVG_EXPORTS_DIR, svg_filename)
+            with open(svg_filepath, "w", encoding="utf-8") as f:
+                f.write(svg_content)
+            
+            # Save metadata
+            svg_metadata = load_svg_metadata()
+            new_svg_item = {
+                "id": svg_id,
+                "filename": svg_filename,
+                "url": f"/exports/{svg_filename}",
+                "template_id": template_id,
+                "created_at": datetime.now().isoformat(),
+            }
+            svg_metadata.append(new_svg_item)
+            save_svg_metadata(svg_metadata)
+            return SVGGenerationResponse(
+                svg_content=svg_content,
+                template_id=template_id,
+                placeholders=placeholders,
+                images_generated=generated_images
+            )
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error generating SVG: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to generate SVG: {str(e)}")
+
+@app.post("/api/process-svg", response_model=SVGProcessingResponse)
+async def process_svg(request: SVGProcessingRequest):
+    """Replace text placeholders in SVG content."""
+    try:
+        logger.info(f"Processing SVG with {len(request.text_replacements)} text replacements")
+        
+        # Replace text placeholders
+        processed_svg = svg_service.replace_text_placeholders(
+            request.svg_content,
+            request.text_replacements
+        )
+        
+        # Add writing lines if requested
+        if request.add_writing_lines:
+            # This is a simple implementation - could be enhanced
+            # For now, we'll just return the processed SVG as-is
+            pass
+        
+        # Get list of replaced placeholders
+        replaced_placeholders = list(request.text_replacements.keys())
+        
+        logger.info(f"Successfully processed SVG with {len(replaced_placeholders)} replacements")
+        
+        return SVGProcessingResponse(
+            processed_svg=processed_svg,
+            replaced_placeholders=replaced_placeholders
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error processing SVG: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to process SVG: {str(e)}")
+
+@app.post("/api/export-svg", response_model=SVGExportResponse)
+async def export_svg(request: SVGExportRequest):
+    """Export SVG to different formats (PDF, DOCX, PNG)."""
+    try:
+        logger.info(f"Exporting SVG to {request.format} format")
+        
+        # Validate format
+        if request.format not in ["pdf", "docx", "png"]:
+            raise HTTPException(status_code=400, detail="Invalid export format. Use 'pdf', 'docx', or 'png'")
+        
+        # Clean filename
+        clean_filename = re.sub(r'[^\w\-_\.]', '_', request.filename)
+        if not clean_filename:
+            clean_filename = f"export_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        
+        # Export based on format
+        if request.format == "pdf":
+            output_path = svg_service.export_svg_to_pdf(request.svg_content, clean_filename)
+        elif request.format == "png":
+            output_path = svg_service.export_svg_to_png(request.svg_content, clean_filename)
+        elif request.format == "docx":
+            output_path = svg_service.export_svg_to_docx(request.svg_content, clean_filename)
+        
+        # Create download URL (relative to the exports directory)
+        download_url = f"/exports/{os.path.basename(output_path)}"
+        
+        logger.info(f"Successfully exported SVG to {output_path}")
+        
+        return SVGExportResponse(
+            download_url=download_url,
+            filename=os.path.basename(output_path),
+            format=request.format
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error exporting SVG: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to export SVG: {str(e)}")
 
 def validate_and_adjust_parameters(request: GenerateImageRequest) -> GenerateImageRequest:
     """

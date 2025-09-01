@@ -48,6 +48,63 @@ export interface Item {
   description?: string;
 }
 
+// SVG-related interfaces
+export interface SVGTemplate {
+  id: string;
+  name: string;
+  content_type: 'image_comprehension' | 'comic' | 'math' | 'worksheet';
+  preview_url?: string;
+  description?: string;
+}
+
+export interface GenerateSVGRequest {
+  content_type: 'image_comprehension' | 'comic' | 'math' | 'worksheet';
+  subject: string;
+  grade_level: string;  // Updated to match backend expectation
+  grade?: string;  // Keep for backward compatibility
+  aspect_ratio?: string;
+  image_count?: number;
+  prompt?: string;
+  custom_instructions?: string;  // Added for frontend compatibility
+}
+
+export interface GenerateSVGResponse {
+  svg_content: string;
+  template_id: string;
+  placeholders: string[];
+  images?: ImageData[];
+}
+
+export interface ProcessSVGRequest {
+  svg_content: string;
+  replacements: Record<string, string>;
+}
+
+export interface ProcessSVGResponse {
+  svg_content: string;
+  processed_placeholders: string[];
+}
+
+export interface ExportSVGRequest {
+  svg_content: string;
+  format: 'pdf' | 'docx' | 'png';
+  filename?: string;
+}
+
+export interface ExportSVGResponse {
+  download_url: string;
+  filename: string;
+  format: string;
+}
+
+export interface SVGData {
+  id: string;
+  filename: string;
+  url: string;
+  template_id: string;
+  created_at: string;
+}
+
 export const imageApi = {
   generate: async (request: GenerateImageRequest): Promise<ImageData> => {
     const response = await apiClient.post('/generate', request);
@@ -74,6 +131,37 @@ export const imageApi = {
       max_images: maxImages
     });
     return response.data;
+  },
+};
+
+export const svgApi = {
+  listTemplates: async (): Promise<SVGTemplate[]> => {
+    const response = await apiClient.get('/svg-templates');
+    return response.data;
+  },
+
+  generate: async (request: GenerateSVGRequest): Promise<GenerateSVGResponse> => {
+    const response = await apiClient.post('/generate-svg', request);
+    return response.data;
+  },
+
+  process: async (request: ProcessSVGRequest): Promise<ProcessSVGResponse> => {
+    const response = await apiClient.post('/process-svg', request);
+    return response.data;
+  },
+
+  export: async (request: ExportSVGRequest): Promise<ExportSVGResponse> => {
+    const response = await apiClient.post('/export-svg', request);
+    return response.data;
+  },
+
+  list: async (): Promise<SVGData[]> => {
+    const response = await apiClient.get('/svg-items');
+    return response.data;
+  },
+
+  delete: async (svgId: string): Promise<void> => {
+    await apiClient.delete(`/svg-items/${svgId}`);
   },
 };
 

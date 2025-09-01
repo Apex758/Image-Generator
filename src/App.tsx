@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from 'react-query';
 import { Container } from './components/layout/Container';
 import { ImageGenerator } from './components/ImageGenerator/ImageGenerator';
 import { ImageGallery } from './components/ImageGallery/ImageGallery';
-import { Sparkles, Cloud, Cpu } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { api, ImagePrompt } from './lib/api';
 import { LessonPlanButton } from './components/LessonPlanModal/LessonPlanButton';
 import { LessonPlan } from './components/LessonPlanModal/mockData';
@@ -134,11 +134,11 @@ function AppContent() {
             </div>
           </div>
           <h1 className="text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl mb-4">
-            Educator's Image Studio
+            Educator's Content Studio
           </h1>
           <p className="text-lg leading-8 text-gray-600 max-w-2xl mx-auto mb-5">
             Create professional teaching resources in seconds.
-            Design visual aids, classroom materials, and educational content with AI assistance.
+            Generate images, interactive worksheets, and educational content with AI assistance.
           </p>
           
           <div className="flex justify-center gap-4">
@@ -235,7 +235,7 @@ function AppContent() {
                 Generation method: <span className="text-blue-600">{config.generation_method}</span>
               </p>
               <p className="text-xs">
-                Created for educational purposes. All generated images are for classroom use only.
+                Created for educational purposes. All generated content is for classroom use only.
               </p>
             </div>
           )}

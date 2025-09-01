@@ -10,3 +10,8 @@ huggingface-hub
 aiohttp
 python-dotenv
 nltk
+svglib>=1.5.1
+reportlab>=4.0.0
+python-docx>=0.8.11
+cairosvg>=2.7.0
+lxml>=4.9.0

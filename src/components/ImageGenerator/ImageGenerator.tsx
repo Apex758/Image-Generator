@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useMutation, useQueryClient } from 'react-query';
 import { Button } from '../ui/Button';
-import { Loader2, Sparkles, Settings, Square } from 'lucide-react';
+import { Loader2, Sparkles, Settings, FileText, Image } from 'lucide-react';
 import { api, GenerateImageRequest } from '../../lib/api';
+import { SVGGenerator } from '../SVGWorkflow/SVGGenerator';
 
 export const ImageGenerator: React.FC = () => {
+  const [mode, setMode] = useState<'image' | 'svg'>('image');
   const [prompt, setPrompt] = useState('');
   const [showAdvanced, setShowAdvanced] = useState(false);
   
@@ -113,7 +115,7 @@ export const ImageGenerator: React.FC = () => {
         queryClient.invalidateQueries('images');
         setPrompt('');
       },
-      onError: (error: any) => {
+      onError: (error: unknown) => {
         console.error('Generation failed:', error);
         alert('Failed to generate image. Please try again.');
       },
@@ -142,11 +144,50 @@ export const ImageGenerator: React.FC = () => {
     "An illustrated periodic table for chemistry class",
   ];
 
+  // If SVG mode is selected, show the SVG generator
+  if (mode === 'svg') {
+    return <SVGGenerator />;
+  }
+
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-      <div className="flex items-center gap-3 mb-6">
-        <Sparkles className="h-5 w-5 text-blue-600" />
-        <h2 className="text-xl font-semibold text-gray-900">Create Teaching Resource</h2>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <Sparkles className="h-5 w-5 text-blue-600" />
+          <h2 className="text-xl font-semibold text-gray-900">Create Teaching Resource</h2>
+        </div>
+        
+        {/* Mode Toggle */}
+        <div className="flex items-center bg-gray-100 rounded-lg p-1">
+          <button
+            type="button"
+            onClick={() => setMode('image')}
+            className={`
+              flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200
+              ${mode === 'image'
+                ? 'bg-white text-blue-600 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+              }
+            `}
+          >
+            <Image className="h-4 w-4" />
+            Images
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode('svg')}
+            className={`
+              flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200
+              ${mode === 'svg'
+                ? 'bg-white text-blue-600 shadow-sm'
+                : 'text-gray-600 hover:text-gray-900'
+              }
+            `}
+          >
+            <FileText className="h-4 w-4" />
+            Worksheets
+          </button>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
