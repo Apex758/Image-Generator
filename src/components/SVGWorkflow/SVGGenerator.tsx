@@ -12,7 +12,11 @@ export const SVGGenerator: React.FC = () => {
   const [currentStep, setCurrentStep] = useState<'select' | 'configure' | 'preview' | 'edit' | 'export'>('select');
   const [selectedContentType, setSelectedContentType] = useState<'image_comprehension' | 'comic' | 'math' | 'worksheet' | ''>('');
   const [subject, setSubject] = useState('');
+  const [topic, setTopic] = useState('');
   const [gradeLevel, setGradeLevel] = useState('');
+  const [layoutStyle, setLayoutStyle] = useState('layout1');
+  const [numQuestions, setNumQuestions] = useState(5);
+  const [questionTypes, setQuestionTypes] = useState(['fill_blank']);
   const [aspectRatio, setAspectRatio] = useState('16:9');
   const [imageCount, setImageCount] = useState(3);
   const [customInstructions, setCustomInstructions] = useState('');
@@ -57,7 +61,11 @@ export const SVGGenerator: React.FC = () => {
     const request: GenerateSVGRequest = {
       content_type: selectedContentType,
       subject,
-      grade_level: gradeLevel,  // Fixed field name
+      topic,
+      grade_level: gradeLevel,
+      layout_style: layoutStyle,
+      num_questions: numQuestions,
+      question_types: questionTypes,
       aspect_ratio: aspectRatio,
       image_count: imageCount,
       custom_instructions: customInstructions || undefined,
@@ -191,6 +199,72 @@ export const SVGGenerator: React.FC = () => {
                   ))}
                 </select>
               </div>
+
+<div>
+  <label htmlFor="topic" className="block text-sm font-medium text-gray-700 mb-2">
+    Topic *
+  </label>
+  <input
+    type="text"
+    id="topic"
+    value={topic}
+    onChange={(e) => setTopic(e.target.value)}
+    placeholder="e.g., Prepositions, Reading Comprehension, Animals"
+    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+    required
+  />
+</div>
+
+<div>
+  <label htmlFor="layoutStyle" className="block text-sm font-medium text-gray-700 mb-2">
+    Worksheet Layout
+  </label>
+  <select
+    id="layoutStyle"
+    value={layoutStyle}
+    onChange={(e) => setLayoutStyle(e.target.value)}
+    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+  >
+    <option value="layout1">Fill-in-the-Blanks (Scene-based)</option>
+    <option value="layout2">Reading Comprehension (Paragraph + Q&A)</option>
+    <option value="layout3">Multiple Choice Analysis</option>
+  </select>
+</div>
+
+<div className="grid grid-cols-2 gap-4">
+  <div>
+    <label htmlFor="numQuestions" className="block text-sm font-medium text-gray-700 mb-2">
+      Number of Questions
+    </label>
+    <input
+      type="number"
+      id="numQuestions"
+      value={numQuestions}
+      onChange={(e) => setNumQuestions(parseInt(e.target.value))}
+      min="3"
+      max="10"
+      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+    />
+  </div>
+  
+  <div>
+    <label htmlFor="questionTypes" className="block text-sm font-medium text-gray-700 mb-2">
+      Question Types
+    </label>
+    <select
+      id="questionTypes"
+      multiple
+      value={questionTypes}
+      onChange={(e) => setQuestionTypes(Array.from(e.target.selectedOptions, option => option.value))}
+      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+    >
+      <option value="fill_blank">Fill in the Blanks</option>
+      <option value="short_answer">Short Answer</option>
+      <option value="multiple_choice">Multiple Choice</option>
+      <option value="true_false">True/False</option>
+    </select>
+  </div>
+</div>
 
               <div>
                 <label htmlFor="aspectRatio" className="block text-sm font-medium text-gray-700 mb-2">

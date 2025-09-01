@@ -136,12 +136,12 @@ export const ImageGenerator: React.FC = () => {
   };
 
   const presetPrompts = [
-    "A colorful classroom with engaged students for a back-to-school presentation",
-    "An illustrated timeline of historical events for a history lesson",
-    "A diagram of the water cycle for an elementary science class",
-    "A visual representation of fractions for a math lesson",
-    "A map of ancient civilizations for a social studies unit",
-    "An illustrated periodic table for chemistry class",
+    "A diverse group of students sitting in a modern classroom, no text visible",
+    "Historical artifacts and ancient tools arranged on a table, photorealistic style",
+    "The water cycle process shown with clouds, rain, rivers and evaporation, no labels or text",
+    "Colorful geometric shapes divided into equal parts to show fractions visually",
+    "Ancient pyramids, temples and architectural structures from different civilizations",
+    "Laboratory equipment with colorful chemical reactions and scientific instruments",
   ];
 
   // If SVG mode is selected, show the SVG generator

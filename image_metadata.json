@@ -167,5 +167,31 @@
     "guidance_scale": 3.5,
     "num_inference_steps": 50,
     "generation_method": "hf_api"
+  },
+  {
+    "id": "1443363f-80ac-461f-9c93-c5140954687c",
+    "filename": "1443363f-80ac-461f-9c93-c5140954687c.png",
+    "url": "/static/1443363f-80ac-461f-9c93-c5140954687c.png",
+    "prompt": "An illustrated timeline of historical events for a history lesson. IMPORTANT: Create this educational image without any visible text, words, letters, numbers, or written characters. Focus purely on visual elements, shapes, colors, objects, and imagery. Any text-like elements should only be abstract decorative patterns or textures, not readable content or intentional lettering. Prioritize clear visual representation over any textual information.",
+    "created_at": "2025-09-01T10:26:15.787654",
+    "width": 1024,
+    "height": 1024,
+    "seed": null,
+    "guidance_scale": 3.5,
+    "num_inference_steps": 50,
+    "generation_method": "hf_api"
+  },
+  {
+    "id": "3a0f3188-f1fb-4dfa-bf46-566a2d6c1c90",
+    "filename": "3a0f3188-f1fb-4dfa-bf46-566a2d6c1c90.png",
+    "url": "/static/3a0f3188-f1fb-4dfa-bf46-566a2d6c1c90.png",
+    "prompt": "A visual representation of fractions for a math lesson. IMPORTANT: Create this educational image without any visible text, words, letters, numbers, or written characters. Focus purely on visual elements, shapes, colors, objects, and imagery. Any text-like elements should only be abstract decorative patterns or textures, not readable content or intentional lettering. Prioritize clear visual representation over any textual information.",
+    "created_at": "2025-09-01T10:27:39.318062",
+    "width": 1024,
+    "height": 1024,
+    "seed": null,
+    "guidance_scale": 3.5,
+    "num_inference_steps": 50,
+    "generation_method": "hf_api"
   }
 ]

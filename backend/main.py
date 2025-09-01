@@ -15,6 +15,7 @@ from io import BytesIO
 from PIL import Image
 import requests
 import aiohttp
+import aiofiles
 from dotenv import load_dotenv
 import re
 import nltk
@@ -88,24 +89,25 @@ def load_model():
         pipe.enable_model_cpu_offload()
         print("Local model loaded successfully!")
 
-def load_metadata():
+async def load_metadata():
     if os.path.exists(metadata_file):
-        with open(metadata_file, 'r') as f:
-            return json.load(f)
+        async with aiofiles.open(metadata_file, 'r') as f:
+            return json.loads(await f.read())
     return []
 
-def save_metadata(metadata):
-    with open(metadata_file, 'w') as f:
-        json.dump(metadata, f, indent=2)
-def load_svg_metadata():
+async def save_metadata(metadata):
+    async with aiofiles.open(metadata_file, 'w') as f:
+        await f.write(json.dumps(metadata, indent=2))
+
+async def load_svg_metadata():
     if os.path.exists(svg_metadata_file):
-        with open(svg_metadata_file, 'r') as f:
-            return json.load(f)
+        async with aiofiles.open(svg_metadata_file, 'r') as f:
+            return json.loads(await f.read())
     return []
 
-def save_svg_metadata(metadata):
-    with open(svg_metadata_file, 'w') as f:
-        json.dump(metadata, f, indent=2)
+async def save_svg_metadata(metadata):
+    async with aiofiles.open(svg_metadata_file, 'w') as f:
+        await f.write(json.dumps(metadata, indent=2))
 
 async def generate_with_hf_api(prompt: str, width: int = 1024, height: int = 1024,
                                guidance_scale: float = 3.5, num_inference_steps: int = 50,
@@ -338,23 +340,20 @@ class LessonPlanAnalysisResponse(BaseModel):
     image_prompts: List[ImagePrompt]
 
 class SVGGenerationRequest(BaseModel):
-    content_type: str  # "image_comprehension", "comic", "math", "worksheet"
+    content_type: str
     subject: str
-    grade_level: str  # Changed from 'grade' to match frontend
-    grade: Optional[str] = None  # Keep for backward compatibility
-    prompt: Optional[str] = None
-    custom_instructions: Optional[str] = None  # New field for frontend compatibility
-    image_count: int = 1
+    topic: str  # NEW
+    grade_level: str
+    layout_style: Optional[str] = "layout1"  # NEW: layout1, layout2, layout3
+    
+    # Question configuration - NEW
+    num_questions: int = 5
+    question_types: List[str] = ["fill_blank", "short_answer", "multiple_choice"]  # NEW
+    
+    image_count: int = 1  # Fixed to 1 for image comprehension
     aspect_ratio: str = "square"
-    template_id: Optional[str] = None
-    
-    def get_grade(self) -> str:
-        """Get grade from either grade_level or grade field."""
-        return self.grade_level or self.grade or ""
-    
-    def get_prompt(self) -> str:
-        """Get prompt from either prompt or custom_instructions field."""
-        return self.prompt or self.custom_instructions or ""
+    custom_instructions: Optional[str] = None
+
 
 class SVGProcessingRequest(BaseModel):
     svg_content: str
@@ -398,7 +397,7 @@ class SVGItem(BaseModel):
 async def list_svg_items():
     """List all generated SVG items."""
     try:
-        svg_metadata = load_svg_metadata()
+        svg_metadata = await load_svg_metadata()
         # Return in reverse order (newest first)
         return [SVGItem(**item) for item in reversed(svg_metadata)]
     except Exception as e:
@@ -408,7 +407,7 @@ async def list_svg_items():
 async def delete_svg_item(item_id: str):
     """Delete a generated SVG item."""
     try:
-        svg_metadata = load_svg_metadata()
+        svg_metadata = await load_svg_metadata()
         item_to_delete = None
         updated_metadata = []
         
@@ -427,7 +426,7 @@ async def delete_svg_item(item_id: str):
             os.remove(filepath)
         
         # Update metadata
-        save_svg_metadata(updated_metadata)
+        await save_svg_metadata(updated_metadata)
         
         return {"message": "SVG item deleted successfully"}
         
@@ -539,7 +538,7 @@ async def generate_image(request: GenerateImageRequest):
         # Create metadata
         try:
             print("Loading and updating metadata")
-            metadata = load_metadata()
+            metadata = await load_metadata()
             image_data = {
                 "id": image_id,
                 "filename": filename,
@@ -554,7 +553,7 @@ async def generate_image(request: GenerateImageRequest):
                 "generation_method": generation_method
             }
             metadata.append(image_data)
-            save_metadata(metadata)
+            await save_metadata(metadata)
             print("Metadata updated successfully")
         except Exception as metadata_error:
             print(f"Error updating metadata: {type(metadata_error).__name__}: {str(metadata_error)}")
@@ -590,7 +589,7 @@ async def generate_image(request: GenerateImageRequest):
 @app.get("/api/images", response_model=List[ImageResponse])
 async def list_images():
     try:
-        metadata = load_metadata()
+        metadata = await load_metadata()
         # Return in reverse order (newest first)
         return [ImageResponse(**img) for img in reversed(metadata)]
     except Exception as e:
@@ -599,7 +598,7 @@ async def list_images():
 @app.delete("/api/images/{image_id}")
 async def delete_image(image_id: str):
     try:
-        metadata = load_metadata()
+        metadata = await load_metadata()
         image_to_delete = None
         updated_metadata = []
         
@@ -618,7 +617,7 @@ async def delete_image(image_id: str):
             os.remove(filepath)
         
         # Update metadata
-        save_metadata(updated_metadata)
+        await save_metadata(updated_metadata)
         
         return {"message": "Image deleted successfully"}
         
@@ -636,16 +635,26 @@ async def get_config():
         "generation_method": "Hugging Face API" if USE_HF_API else "Local Model"
     }
 
-# Initialize NLTK resources
-try:
-    nltk.data.find('tokenizers/punkt')
-    nltk.data.find('taggers/averaged_perceptron_tagger')
-except LookupError:
-    print("Downloading NLTK resources...")
-    nltk.download('punkt')
-    nltk.download('averaged_perceptron_tagger')
-    nltk.download('stopwords')
-    print("NLTK resources downloaded successfully")
+def check_nltk_resources():
+    """Check if all required NLTK resources are available."""
+    required_resources = [
+        ('tokenizers/punkt', 'punkt'),
+        ('taggers/averaged_perceptron_tagger', 'averaged_perceptron_tagger'),
+        ('corpora/stopwords', 'stopwords')
+    ]
+    
+    for resource_path, resource_name in required_resources:
+        try:
+            nltk.data.find(resource_path)
+        except LookupError:
+            logger.error(f"NLTK resource '{resource_name}' not found.")
+            logger.error("Please run the setup script to download the required resources:")
+            logger.error("python backend/setup.py")
+            # Exit the application if resources are missing
+            exit(1)
+
+# Check for NLTK resources on startup
+check_nltk_resources()
 
 class AIService:
     """Service for interacting with AI models via OpenRouter."""
@@ -818,6 +827,8 @@ class SVGService:
                             elem.text = replacement_text
                         elif elem.text:
                             elem.text = replacement_text
+                        else:
+                            elem.text = "" # Clear placeholder if no replacement
             
             # Convert back to string
             return ET.tostring(root, encoding='unicode')
@@ -1181,10 +1192,14 @@ async def generate_svg(request: SVGGenerationRequest):
         async with image_generation_semaphore:
             logger.info(f"Generating SVG for content type: {request.content_type}")
             
-            # Select template
-            template_id = request.template_id or request.content_type
-            if template_id not in svg_service.template_metadata:
-                raise HTTPException(status_code=400, detail=f"Invalid template ID: {template_id}")
+            # Select template based on content type and layout style
+            if request.content_type == "image_comprehension":
+                template_id = f"{request.content_type}_{request.layout_style}"
+            else:
+                template_id = request.content_type
+
+            if not os.path.exists(os.path.join(SVG_TEMPLATES_DIR, f"{template_id}.svg")):
+                 raise HTTPException(status_code=400, detail=f"Template not found for content type '{request.content_type}' and layout '{request.layout_style}'")
 
             # Validate image count
             content_type_metadata = svg_service.template_metadata.get(request.content_type)
@@ -1200,90 +1215,119 @@ async def generate_svg(request: SVGGenerationRequest):
             # Load SVG template
             svg_content = svg_service.load_template(template_id)
             
-            # Use AI to analyze the prompt and generate image prompts if needed
+            # Use AI to analyze the prompt and generate content
             generated_images = []
-            if request.image_count > 0:
-                try:
-                    ai_service = AIService()
-                    
-                    # Create analysis prompt
-                    analysis_prompt = f"""
-                    Create {request.image_count} educational image prompts for {request.subject} content
-                    for grade {request.get_grade()} students. The content type is {request.content_type}.
-                    
-                    User prompt: {request.get_prompt()}
-                    
-                    Generate detailed, educational image prompts suitable for the {request.aspect_ratio} aspect ratio.
-                    Return as JSON array with objects containing 'prompt' field.
-                    """
-                    
-                    system_message = """
-                    You are an expert educational content creator. Generate appropriate image prompts
-                    for educational materials. Always respond with properly formatted JSON only.
-                    """
-                    
-                    response = ai_service.query_model(analysis_prompt, system_message)
-                    
-                    # Parse AI response to get image prompts
-                    image_prompts = []
-                    if response:
-                        try:
-                            if "```json" in response:
-                                json_match = re.search(r'```json\s*([\s\S]*?)\s*```', response)
-                                if json_match:
-                                    response = json_match.group(1)
-                            
-                            prompts_data = json.loads(response.strip())
-                            for item in prompts_data:
-                                if isinstance(item, dict) and 'prompt' in item:
-                                    image_prompts.append(item['prompt'])
-                        except:
-                            # Fallback to simple prompt
-                            image_prompts = [f"Educational illustration for {request.subject}, grade {request.grade}"]
-                    else:
-                        # Fallback prompt
-                        image_prompts = [f"Educational illustration for {request.subject}, grade {request.grade}"]
-                    
-                    # Generate images
-                    for i, img_prompt in enumerate(image_prompts[:request.image_count]):
-                        try:
-                            # Determine dimensions based on aspect ratio
-                            if request.aspect_ratio == "square":
-                                width, height = 512, 512
-                            elif request.aspect_ratio == "landscape":
-                                width, height = 768, 512
-                            elif request.aspect_ratio == "portrait":
-                                width, height = 512, 768
-                            else:
-                                width, height = 512, 512
-                            
-                            # Generate image
-                            if USE_HF_API:
-                                image = await generate_with_hf_api(img_prompt, width, height)
-                            else:
-                                image = generate_with_local_model(img_prompt, width, height)
-                            
-                            # Save image
-                            image_id = str(uuid.uuid4())
-                            filename = f"svg_{image_id}.png"
-                            filepath = os.path.join(IMAGES_DIR, filename)
-                            image.save(filepath)
-                            
-                            generated_images.append(f"/static/{filename}")
-                            
-                        except Exception as img_error:
-                            logger.error(f"Error generating image {i}: {img_error}")
-                            # Continue with other images
-                            continue
-                    
-                    # Embed images in SVG
-                    if generated_images:
-                        svg_content = await svg_service.embed_images_in_svg(svg_content, generated_images)
+            text_replacements = {}
+
+            ai_service = AIService()
+
+            if request.content_type == "image_comprehension":
+                analysis_prompt = f"""
+                Create educational content for an image comprehension worksheet:
                 
-                except Exception as ai_error:
-                    logger.error(f"Error in AI-based image generation: {ai_error}")
-                    # Continue without images
-                    pass
+                Subject: {request.subject}
+                Topic: {request.topic}
+                Grade Level: {request.grade_level}
+                Layout Style: {request.layout_style}
+                Number of Questions: {request.num_questions}
+                Question Types: {', '.join(request.question_types)}
+                
+                Generate:
+                1. A detailed, one-sentence art prompt for an educational illustration for the worksheet.
+                2. Appropriate instructions for students based on the questions.
+                3. {request.num_questions} questions about the scene described in the art prompt, using the specified question types.
+                4. For "fill_blank" questions, create sentences with blanks. For "multiple_choice", provide options A, B, C, D.
+                5. For "short_answer", create open-ended questions.
+                6. Make all content age-appropriate for {request.grade_level}.
+                
+                Return as a single JSON object with three fields: "image_prompt" (a string), "instructions" (a string), and "questions" (an array of objects, each with "type" and "text" fields, and "options" if applicable).
+                """
+                system_message = "You are an expert educational content creator. Generate worksheet content as a valid JSON object with no extra text."
+                
+                response = ai_service.query_model(analysis_prompt, system_message)
+                
+                image_prompt = f"A vibrant educational illustration for {request.subject} on {request.topic}."
+                if response:
+                    try:
+                        if "```json" in response:
+                            response = re.search(r'```json\s*([\s\S]*?)\s*```', response).group(1)
+                        
+                        content_data = json.loads(response.strip())
+                        image_prompt = content_data.get("image_prompt", image_prompt)
+                        text_replacements["instructions"] = content_data.get("instructions", "")
+                        
+                        questions = content_data.get("questions", [])
+                        for i, q in enumerate(questions[:request.num_questions]):
+                            q_text = q.get("text", "")
+                            if q.get("type") == "multiple_choice" and q.get("options"):
+                                options = " ".join([f"{key}) {value}" for key, value in q.get("options", {}).items()])
+                                q_text = f"{q_text} {options}"
+                            text_replacements[f"question{i+1}"] = q_text
+
+                    except Exception as e:
+                        logger.error(f"Error parsing AI content response: {e}")
+                        text_replacements["instructions"] = "Look at the image and answer the questions."
+                        for i in range(request.num_questions):
+                            text_replacements[f"question{i+1}"] = f"Question {i+1}."
+                
+                image_prompts = [image_prompt]
+
+            else: # Other content types
+                analysis_prompt = f"""
+                Create {request.image_count} educational image prompts for {request.subject} content
+                for grade {request.grade_level} students on the topic of {request.topic}.
+                The content type is {request.content_type}.
+                
+                User prompt: {request.custom_instructions or ""}
+                
+                Generate detailed, educational image prompts suitable for the {request.aspect_ratio} aspect ratio.
+                Return as JSON array with objects containing 'prompt' field.
+                """
+                system_message = "You are an expert educational content creator. Generate appropriate image prompts for educational materials. Always respond with properly formatted JSON only."
+                response = ai_service.query_model(analysis_prompt, system_message)
+                
+                image_prompts = []
+                if response:
+                    try:
+                        if "```json" in response:
+                            response = re.search(r'```json\s*([\s\S]*?)\s*```', response).group(1)
+                        
+                        prompts_data = json.loads(response.strip())
+                        for item in prompts_data:
+                            if isinstance(item, dict) and 'prompt' in item:
+                                image_prompts.append(item['prompt'])
+                    except:
+                        image_prompts = [f"Educational illustration for {request.subject} on {request.topic}"]
+                if not image_prompts:
+                     image_prompts = [f"Educational illustration for {request.subject} on {request.topic}"]
+
+
+            # Generate and embed images
+            if request.image_count > 0 and image_prompts:
+                for i, img_prompt in enumerate(image_prompts[:request.image_count]):
+                    try:
+                        if request.aspect_ratio == "square": width, height = 512, 512
+                        elif request.aspect_ratio == "landscape": width, height = 768, 512
+                        elif request.aspect_ratio == "portrait": width, height = 512, 768
+                        else: width, height = 512, 512
+                        
+                        if USE_HF_API: image = await generate_with_hf_api(img_prompt, width, height)
+                        else: image = generate_with_local_model(img_prompt, width, height)
+                        
+                        image_id = str(uuid.uuid4())
+                        filename = f"svg_{image_id}.png"
+                        filepath = os.path.join(IMAGES_DIR, filename)
+                        image.save(filepath)
+                        generated_images.append(f"/static/{filename}")
+                    except Exception as img_error:
+                        logger.error(f"Error generating image {i}: {img_error}")
+                        continue
+                
+                if generated_images:
+                    svg_content = await svg_service.embed_images_in_svg(svg_content, generated_images)
+
+            # Populate text placeholders
+            svg_content = svg_service.replace_text_placeholders(svg_content, text_replacements)
             
             # Extract placeholders
             placeholders = svg_service.extract_placeholders(svg_content)
@@ -1294,11 +1338,11 @@ async def generate_svg(request: SVGGenerationRequest):
             svg_id = str(uuid.uuid4())
             svg_filename = f"{svg_id}.svg"
             svg_filepath = os.path.join(SVG_EXPORTS_DIR, svg_filename)
-            with open(svg_filepath, "w", encoding="utf-8") as f:
-                f.write(svg_content)
+            async with aiofiles.open(svg_filepath, "w", encoding="utf-8") as f:
+                await f.write(svg_content)
             
             # Save metadata
-            svg_metadata = load_svg_metadata()
+            svg_metadata = await load_svg_metadata()
             new_svg_item = {
                 "id": svg_id,
                 "filename": svg_filename,
@@ -1307,7 +1351,7 @@ async def generate_svg(request: SVGGenerationRequest):
                 "created_at": datetime.now().isoformat(),
             }
             svg_metadata.append(new_svg_item)
-            save_svg_metadata(svg_metadata)
+            await save_svg_metadata(svg_metadata)
             return SVGGenerationResponse(
                 svg_content=svg_content,
                 template_id=template_id,

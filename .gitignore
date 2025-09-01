@@ -38,3 +38,6 @@ backend/generated_images/*
 
 # Generated images folder
 generated_images/
+
+
+__pycache__
