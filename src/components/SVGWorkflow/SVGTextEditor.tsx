@@ -119,10 +119,19 @@ export const SVGTextEditor: React.FC<SVGTextEditorProps> = ({
   // Update preview when replacements change
   useEffect(() => {
     let updatedContent = svgContent;
+    
+    // Replace actual content in the SVG, not placeholder patterns
     Object.entries(replacements).forEach(([placeholder, replacement]) => {
-        const regex = new RegExp(`\\[${placeholder}\\]`, 'g');
-        updatedContent = updatedContent.replace(regex, `[${replacement}]`);
+      if (replacement.trim()) {
+        // Get the original content that was extracted for this placeholder
+        const originalContent = extractContentFromSVG(placeholder);
+        if (originalContent) {
+          // Replace the original content with the new replacement
+          updatedContent = updatedContent.replace(originalContent, replacement);
+        }
+      }
     });
+    
     setPreviewContent(updatedContent);
   }, [svgContent, replacements]);
 
@@ -130,7 +139,7 @@ export const SVGTextEditor: React.FC<SVGTextEditorProps> = ({
     (request: ProcessSVGRequest) => svgApi.process(request),
     {
       onSuccess: (data) => {
-        onSave(data.svg_content);
+        onSave(data.processed_svg);  // Updated to match new interface
       },
       onError: (error: unknown) => {
         console.error('SVG processing failed:', error);
@@ -170,7 +179,8 @@ export const SVGTextEditor: React.FC<SVGTextEditorProps> = ({
   const handleSave = () => {
     const request: ProcessSVGRequest = {
       svg_content: svgContent,
-      replacements
+      text_replacements: replacements,  // Changed from 'replacements' to 'text_replacements'
+      add_writing_lines: false  // Added the optional field
     };
     processMutation.mutate(request);
   };

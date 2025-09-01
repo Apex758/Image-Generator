@@ -60,29 +60,32 @@ export interface SVGTemplate {
 export interface GenerateSVGRequest {
   content_type: 'image_comprehension' | 'comic' | 'math' | 'worksheet';
   subject: string;
-  grade_level: string;  // Updated to match backend expectation
-  grade?: string;  // Keep for backward compatibility
-  aspect_ratio?: string;
+  topic: string;  // Added - required by backend
+  grade_level: string;
+  layout_style?: string;  // Added - backend expects this (layout1, layout2, layout3)
+  num_questions?: number;  // Added - backend expects this
+  question_types?: string[];  // Added - backend expects this
   image_count?: number;
-  prompt?: string;
-  custom_instructions?: string;  // Added for frontend compatibility
+  aspect_ratio?: string;
+  custom_instructions?: string;
 }
 
 export interface GenerateSVGResponse {
   svg_content: string;
   template_id: string;
   placeholders: string[];
-  images?: ImageData[];
+  images_generated: string[];  // Changed from 'images' to match backend field name
 }
 
 export interface ProcessSVGRequest {
   svg_content: string;
-  replacements: Record<string, string>;
+  text_replacements: Record<string, string>;  // Changed from 'replacements' to match backend
+  add_writing_lines?: boolean;  // Added optional field that backend expects
 }
 
 export interface ProcessSVGResponse {
-  svg_content: string;
-  processed_placeholders: string[];
+  processed_svg: string;  // Changed from svg_content to match backend
+  replaced_placeholders: string[];  // Changed from processed_placeholders to match backend
 }
 
 export interface ExportSVGRequest {
