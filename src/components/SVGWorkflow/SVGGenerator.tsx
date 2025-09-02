@@ -22,6 +22,8 @@ export const SVGGenerator: React.FC = () => {
   const [imageFormat, setImageFormat] = useState('landscape');
   const [imageCount, setImageCount] = useState(3);
   const [customInstructions, setCustomInstructions] = useState('');
+  const [includeActivityBox, setIncludeActivityBox] = useState(true);
+  const [includeWordBank, setIncludeWordBank] = useState(true); // NEW: Word bank toggle
   const [generatedSVG, setGeneratedSVG] = useState<GenerateSVGResponse | null>(null);
   const [processedSVG, setProcessedSVG] = useState<string>('');
 
@@ -71,7 +73,6 @@ export const SVGGenerator: React.FC = () => {
       return;
     }
 
-    // Get image aspect ratio from selected format
     const selectedFormat = imageFormatOptions.find(f => f.value === imageFormat);
     const imageAspectRatio = selectedFormat ? selectedFormat.aspectRatio : { width: 16, height: 9 };
 
@@ -81,12 +82,14 @@ export const SVGGenerator: React.FC = () => {
       topic,
       grade_level: gradeLevel,
       layout_style: layoutStyle,
-      num_questions: numQuestions, // Will be used for dynamic template generation
-      question_types: questionTypes, // Will be passed to AI
+      num_questions: numQuestions,
+      question_types: questionTypes,
       image_format: imageFormat,
       image_aspect_ratio: imageAspectRatio,
       image_count: imageCount,
       custom_instructions: customInstructions || undefined,
+      include_activity_box: includeActivityBox,
+      include_word_bank: includeWordBank, // NEW: Pass the word bank setting
     };
 
     generateMutation.mutate(request);
@@ -207,14 +210,13 @@ export const SVGGenerator: React.FC = () => {
 
       {/* Step 2: Configuration */}
       {currentStep === 'configure' && (
-        <div className="space-y-6">
-          <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Configure Your K-6 Worksheet</h3>
-            
-
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-lg font-medium text-gray-900 mb-4">Configure Your K-6 Worksheet</h3>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* ... existing configuration fields ... */}
+           <div>
                 <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-2">
                   Subject *
                 </label>
@@ -280,130 +282,211 @@ export const SVGGenerator: React.FC = () => {
                   ))}
                 </select>
               </div>
-
-              <div className="md:col-span-2">
-                <label htmlFor="numQuestions" className="block text-sm font-medium text-gray-700 mb-2">
-                  Number of Questions *
-                </label>
-                <div className="flex items-center gap-4">
-                  <input
-                    type="number"
-                    id="numQuestions"
-                    value={numQuestions}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      if (value === '') {
-                        setNumQuestions(5); // Default to 5 when cleared
-                      } else {
-                        const parsed = parseInt(value);
-                        if (!isNaN(parsed)) {
-                          // Allow typing any number, but clamp to valid range
-                          const clamped = Math.min(Math.max(parsed, questionLimits.min), questionLimits.max);
-                          setNumQuestions(clamped);
-                        }
-                      }
-                    }}
-                    onBlur={(e) => {
-                      // Ensure valid range when user finishes typing
-                      const value = parseInt(e.target.value);
-                      if (isNaN(value) || value < questionLimits.min) {
-                        setNumQuestions(5); // Default to 5 for invalid values
-                      } else if (value > questionLimits.max) {
-                        setNumQuestions(questionLimits.max);
-                      }
-                    }}
-                    min={questionLimits.min}
-                    max={questionLimits.max}
-                    className="w-32 px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="1-10"
-                  />
-                  <div className="flex-1">
-                    <div className="bg-gray-200 rounded-full h-2">
-                      <div 
-                        className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
-                        style={{ 
-                          width: `${((numQuestions - questionLimits.min) / (questionLimits.max - questionLimits.min)) * 100}%` 
-                        }}
-                      ></div>
-                    </div>
-                    <div className="flex justify-between text-xs text-gray-500 mt-1">
-                      <span>1</span>
-                      <span className="font-medium text-blue-600">{numQuestions} questions</span>
-                      <span>10</span>
-                    </div>
-                  </div>
+          
+          {/* Enhanced Activity and Word Bank Options */}
+          <div className="md:col-span-2 space-y-4">
+            
+            {/* Activity Box Toggle */}
+            <div className="flex items-center space-x-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <input
+                type="checkbox"
+                id="includeActivityBox"
+                checked={includeActivityBox}
+                onChange={(e) => setIncludeActivityBox(e.target.checked)}
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <label htmlFor="includeActivityBox" className="flex-1">
+                <div className="font-medium text-blue-800">Include Activity Drawing Box</div>
+                <div className="text-sm text-blue-600">
+                  Add a section for students to draw or write about what they learned.
+                  {!includeActivityBox && (
+                    <span className="font-medium"> (Unchecked - saves space for more questions)</span>
+                  )}
                 </div>
-                <p className="text-xs text-gray-500 mt-2">
-                  The template will be generated to fit exactly {numQuestions} questions with proper spacing and layout.
-                </p>
+              </label>
+            </div>
+
+            {/* Word Bank Toggle - Only show for fill-in-the-blank */}
+            {questionTypes.includes('fill_blank') && (
+              <div className="flex items-center space-x-3 p-4 bg-green-50 border border-green-200 rounded-lg">
+                <input
+                  type="checkbox"
+                  id="includeWordBank"
+                  checked={includeWordBank}
+                  onChange={(e) => setIncludeWordBank(e.target.checked)}
+                  className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+                />
+                <label htmlFor="includeWordBank" className="flex-1">
+                  <div className="font-medium text-green-800">Include Word Bank for Fill-in-the-Blank</div>
+                  <div className="text-sm text-green-600">
+                    Automatically generates answer words at the bottom to help students complete the blanks.
+                    {!includeWordBank && (
+                      <span className="font-medium"> (Unchecked - students must know answers)</span>
+                    )}
+                  </div>
+                </label>
               </div>
-              
-              {selectedContentType !== 'image_comprehension' && (
-                <div>
-                  <label htmlFor="imageCount" className="block text-sm font-medium text-gray-700 mb-2">
-                    Number of Images
-                  </label>
-                  <input
-                    type="number"
-                    id="imageCount"
-                    value={imageCount}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      const minImages = contentTypes.find((ct) => ct.id === selectedContentType)?.minImages ?? 1;
-                      const maxImages = contentTypes.find((ct) => ct.id === selectedContentType)?.maxImages ?? 10;
-                      
-                      if (value === '') {
-                        setImageCount(minImages);
-                      } else {
-                        const parsed = parseInt(value);
-                        if (!isNaN(parsed) && parsed >= minImages && parsed <= maxImages) {
-                          setImageCount(parsed);
-                        }
-                      }
-                    }}
-                    min={contentTypes.find((ct) => ct.id === selectedContentType)?.minImages ?? 1}
-                    max={contentTypes.find((ct) => ct.id === selectedContentType)?.maxImages ?? 10}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
+            )}
+
+            {/* Space Usage Indicator */}
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+              <h4 className="font-medium text-gray-800 mb-2">📊 Worksheet Space Usage</h4>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span>Questions ({numQuestions}):</span>
+                  <span className="font-medium">{numQuestions * 35}px</span>
+                </div>
+                {includeWordBank && questionTypes.includes('fill_blank') && (
+                  <div className="flex justify-between text-green-700">
+                    <span>Word Bank:</span>
+                    <span className="font-medium">80px</span>
+                  </div>
+                )}
+                {includeActivityBox && (
+                  <div className="flex justify-between text-blue-700">
+                    <span>Activity Box:</span>
+                    <span className="font-medium">120px</span>
+                  </div>
+                )}
+                <div className="flex justify-between border-t pt-2">
+                  <span>Fixed Elements:</span>
+                  <span className="font-medium">445px</span>
+                </div>
+                <div className="flex justify-between font-bold border-t pt-2">
+                  <span>Total Used:</span>
+                  <span className={`font-medium ${
+                    (numQuestions * 35) + 445 + (includeWordBank && questionTypes.includes('fill_blank') ? 80 : 0) + (includeActivityBox ? 120 : 0) > 1023
+                      ? 'text-red-600' : 'text-green-600'
+                  }`}>
+                    {(numQuestions * 35) + 445 + (includeWordBank && questionTypes.includes('fill_blank') ? 80 : 0) + (includeActivityBox ? 120 : 0)}px / 1023px
+                  </span>
+                </div>
+              </div>
+              {((numQuestions * 35) + 445 + (includeWordBank && questionTypes.includes('fill_blank') ? 80 : 0) + (includeActivityBox ? 120 : 0)) > 1023 && (
+                <div className="mt-3 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-700">
+                  ⚠️ Content may overflow! Consider reducing questions or disabling optional features.
                 </div>
               )}
+            </div>
+          </div>
 
-              <div>
-                <label htmlFor="questionTypes" className="block text-sm font-medium text-gray-700 mb-2">
-                  {selectedContentType === 'image_comprehension' ? 'Question Type *' : 'Question Types * (AI will respect these)'}
-                </label>
-                {selectedContentType === 'image_comprehension' ? (
-                  <select
-                    id="questionTypes"
-                    value={questionTypes[0] || 'fill_blank'}
-                    onChange={(e) => setQuestionTypes([e.target.value])}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
-                  >
-                    {questionTypeOptions.map((type) => (
-                      <option key={type.value} value={type.value}>{type.label}</option>
-                    ))}
-                  </select>
-                ) : (
-                  <>
-                    <select
-                      id="questionTypes"
-                      multiple
-                      value={questionTypes}
-                      onChange={(e) => setQuestionTypes(Array.from(e.target.selectedOptions, option => option.value))}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent h-24"
-                      required
-                    >
-                      {questionTypeOptions.map((type) => (
-                        <option key={type.value} value={type.value}>{type.label}</option>
-                      ))}
-                    </select>
-                    <p className="text-xs text-gray-500 mt-1">Hold Ctrl/Cmd to select multiple types</p>
-                  </>
-                )}
+          <div className="md:col-span-2">
+            <label htmlFor="numQuestions" className="block text-sm font-medium text-gray-700 mb-2">
+              Number of Questions *
+            </label>
+            <div className="flex items-center gap-4">
+              <input
+                type="number"
+                id="numQuestions"
+                value={numQuestions}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === '') {
+                    setNumQuestions(5);
+                  } else {
+                    const parsed = parseInt(value);
+                    if (!isNaN(parsed)) {
+                      const clamped = Math.min(Math.max(parsed, questionLimits.min), questionLimits.max);
+                      setNumQuestions(clamped);
+                    }
+                  }
+                }}
+                onBlur={(e) => {
+                  const value = parseInt(e.target.value);
+                  if (isNaN(value) || value < questionLimits.min) {
+                    setNumQuestions(5);
+                  } else if (value > questionLimits.max) {
+                    setNumQuestions(questionLimits.max);
+                  }
+                }}
+                min={questionLimits.min}
+                max={questionLimits.max}
+                className="w-32 px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="1-10"
+              />
+              <div className="flex-1">
+                <div className="bg-gray-200 rounded-full h-2">
+                  <div
+                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                    style={{
+                      width: `${((numQuestions - questionLimits.min) / (questionLimits.max - questionLimits.min)) * 100}%`
+                    }}
+                  ></div>
+                </div>
+                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                  <span>1</span>
+                  <span className="font-medium text-blue-600">{numQuestions} questions</span>
+                  <span>10</span>
+                </div>
               </div>
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              💡 The system automatically handles overflow by removing optional features or showing continuation notices.
+            </p>
+          </div>
 
-              <div>
+          {/* Question Types - Enhanced for word bank */}
+          <div>
+            <label htmlFor="questionTypes" className="block text-sm font-medium text-gray-700 mb-2">
+              {selectedContentType === 'image_comprehension' ? 'Question Type *' : 'Question Types *'}
+            </label>
+            {selectedContentType === 'image_comprehension' ? (
+              <select
+                id="questionTypes"
+                value={questionTypes[0] || 'fill_blank'}
+                onChange={(e) => {
+                  setQuestionTypes([e.target.value]);
+                  // Auto-enable word bank for fill_blank, disable for others
+                  if (e.target.value === 'fill_blank') {
+                    setIncludeWordBank(true);
+                  } else {
+                    setIncludeWordBank(false);
+                  }
+                }}
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              >
+                {questionTypeOptions.map((type) => (
+                  <option key={type.value} value={type.value}>
+                    {type.label}
+                    {type.value === 'fill_blank' ? ' (supports word bank)' : ''}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <>
+                <select
+                  id="questionTypes"
+                  multiple
+                  value={questionTypes}
+                  onChange={(e) => {
+                    const newTypes = Array.from(e.target.selectedOptions, option => option.value);
+                    setQuestionTypes(newTypes);
+                    // Auto-manage word bank based on selection
+                    if (newTypes.includes('fill_blank')) {
+                      setIncludeWordBank(true);
+                    } else {
+                      setIncludeWordBank(false);
+                    }
+                  }}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent h-24"
+                  required
+                >
+                  {questionTypeOptions.map((type) => (
+                    <option key={type.value} value={type.value}>
+                      {type.label}
+                      {type.value === 'fill_blank' ? ' (supports word bank)' : ''}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 mt-1">Hold Ctrl/Cmd to select multiple types</p>
+              </>
+            )}
+          </div>
+
+          {/* ... rest of existing configuration fields ... */}
+          
+           <div>
                 <label htmlFor="imageFormat" className="block text-sm font-medium text-gray-700 mb-2">
                   Image Format (for AI generation)
                 </label>
@@ -419,9 +502,9 @@ export const SVGGenerator: React.FC = () => {
                 </select>
                 <p className="text-xs text-gray-500 mt-1">This determines the aspect ratio for AI-generated images</p>
               </div>
-            </div>
+        </div>
 
-            <div className="mt-6">
+        <div className="mt-6">
               <label htmlFor="customInstructions" className="block text-sm font-medium text-gray-700 mb-2">
                 Custom Instructions (Optional)
               </label>
@@ -434,35 +517,41 @@ export const SVGGenerator: React.FC = () => {
                 className="w-full px-4 py-3 border border-gray-200 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
-          </div>
 
-          <div className="flex gap-3">
-            <Button
-              variant="outline"
-              onClick={() => setCurrentStep('select')}
-            >
-              Back
-            </Button>
-            <Button
-              onClick={handleGenerate}
-              disabled={!subject || !gradeLevel || !topic || questionTypes.length === 0 || generateMutation.isLoading}
-              className="flex-1"
-            >
-              {generateMutation.isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Generating Worksheet ({numQuestions} questions)...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  Generate K-6 Worksheet ({numQuestions} questions)
-                </>
-              )}
-            </Button>
-          </div>
+        <div className="flex gap-3 mt-6">
+          <Button
+            variant="outline"
+            onClick={() => setCurrentStep('select')}
+          >
+            Back
+          </Button>
+          <Button
+            onClick={handleGenerate}
+            disabled={!subject || !gradeLevel || !topic || questionTypes.length === 0 || generateMutation.isLoading}
+            className="flex-1"
+          >
+            {generateMutation.isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Generating Worksheet...
+              </>
+            ) : (
+              <>
+                <Sparkles className="mr-2 h-4 w-4" />
+                Generate K-6 Worksheet
+                {(() => {
+                  const features = [];
+                  if (includeWordBank && questionTypes.includes('fill_blank')) features.push('word bank');
+                  if (includeActivityBox) features.push('activity box');
+                  return features.length > 0 ? ` (${features.join(', ')})` : '';
+                })()}
+              </>
+            )}
+          </Button>
         </div>
-      )}
+      </div>
+    </div>
+  )}
 
       {/* Step 3: Preview */}
       {currentStep === 'preview' && generatedSVG && (

@@ -13,64 +13,83 @@
     </style>
   </defs>
   
-  <!-- Background -->
+  <!-- A4 Background -->
   <rect width="794" height="1123" fill="#ffffff" stroke="none"/>
   
-  <!-- Header -->
-  <rect x="30" y="30" width="734" height="35" fill="#ffffff" stroke="#000000" stroke-width="1"/>
-  <text x="50" y="48" class="title">[subject] / Practice Comprehension / Grade [grade]</text>
-  <text x="50" y="58" class="small">Name: _______________</text>
-  <text x="500" y="58" class="small">Date: ______</text>
+  <!-- Header with proper margins -->
+  <rect x="50" y="50" width="694" height="35" fill="#ffffff" stroke="#2c3e50" stroke-width="1"/>
+  <text x="70" y="70" class="title">[subject] / Practice Comprehension / Grade [grade]</text>
+  <text x="70" y="80" class="small">Name: _______________</text>
+  <text x="520" y="80" class="small">Date: ______</text>
   
   <!-- Topic -->
-  <text x="397" y="85" class="instruction" text-anchor="middle">Topic - [topic]</text>
+  <text x="397" y="105" class="instruction" text-anchor="middle">Topic - [topic]</text>
   
-  <!-- Reading passage area -->
-  <text x="50" y="110" class="instruction">Read:</text>
-  <rect x="50" y="120" width="480" height="180" fill="#f8f9fa" stroke="#dee2e6" stroke-width="1"/>
-  <foreignObject x="60" y="130" width="460" height="160">
+  <!-- Reading passage area with proper spacing -->
+  <text x="70" y="130" class="instruction">Read:</text>
+  <rect x="70" y="140" width="480" height="180" fill="#f8f9fa" stroke="#dee2e6" stroke-width="1"/>
+  <foreignObject x="80" y="150" width="460" height="160">
     <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: Arial, sans-serif; font-size: 10px; color: #2c3e50; line-height: 1.3; word-wrap: break-word; margin: 0; padding: 5px;">
       [READING_PASSAGE]
     </div>
   </foreignObject>
   
-  <!-- Small image on right -->
-  <rect x="550" y="120" width="170" height="120" fill="#e8f4fd" stroke="#bdc3c7" stroke-width="2" stroke-dasharray="3,3" id="placeholder_image"/>
-  <!-- <text x="397" y="260" text-anchor="middle" class="placeholder">Image will appear here</text> -->
+  <!-- Small image on right with proper spacing -->
+  <rect x="570" y="140" width="154" height="120" fill="#e8f4fd" stroke="#bdc3c7" stroke-width="2" stroke-dasharray="3,3" id="placeholder_image"/>
   
-  <!-- Instructions for questions with proper text wrapping -->
-  <foreignObject x="50" y="320" width="694" height="40">
+  <!-- Instructions for questions -->
+  <foreignObject x="70" y="340" width="654" height="40">
     <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: Arial, sans-serif; font-size: 11px; color: #2c3e50; font-weight: bold; line-height: 1.4; word-wrap: break-word; margin: 0; padding: 5px 0;">
       [instructions]
     </div>
   </foreignObject>
   
-  <!-- Q&A Section with better spacing -->
-  <text x="50" y="385" class="question">Q1. [question1]</text>
-  <text x="50" y="400" class="question">Ans: _______________</text>
-  <line x1="85" y1="400" x2="744" y2="400" class="answer-line"/>
+  <!-- Q&A Section with proper spacing -->
+  <foreignObject x="70" y="395" width="654" height="25">
+    <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: Arial, sans-serif; font-size: 10px; color: #2c3e50; margin: 0;">
+      Q1. [question1]
+    </div>
+  </foreignObject>
+  <text x="70" y="420" class="question">Ans: _______________</text>
+  <line x1="105" y1="420" x2="724" y2="420" class="answer-line"/>
   
-  <text x="50" y="430" class="question">Q2. [question2]</text>
-  <text x="50" y="445" class="question">Ans: _______________</text>
-  <line x1="85" y1="445" x2="744" y2="445" class="answer-line"/>
+  <foreignObject x="70" y="440" width="654" height="25">
+    <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: Arial, sans-serif; font-size: 10px; color: #2c3e50; margin: 0;">
+      Q2. [question2]
+    </div>
+  </foreignObject>
+  <text x="70" y="465" class="question">Ans: _______________</text>
+  <line x1="105" y1="465" x2="724" y2="465" class="answer-line"/>
   
-  <text x="50" y="475" class="question">Q3. [question3]</text>
-  <text x="50" y="490" class="question">Ans: _______________</text>
-  <line x1="85" y1="490" x2="744" y2="490" class="answer-line"/>
+  <foreignObject x="70" y="485" width="654" height="25">
+    <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: Arial, sans-serif; font-size: 10px; color: #2c3e50; margin: 0;">
+      Q3. [question3]
+    </div>
+  </foreignObject>
+  <text x="70" y="510" class="question">Ans: _______________</text>
+  <line x1="105" y1="510" x2="724" y2="510" class="answer-line"/>
   
-  <text x="50" y="520" class="question">Q4. [question4]</text>
-  <text x="50" y="535" class="question">Ans: _______________</text>
-  <line x1="85" y1="535" x2="744" y2="535" class="answer-line"/>
+  <foreignObject x="70" y="530" width="654" height="25">
+    <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: Arial, sans-serif; font-size: 10px; color: #2c3e50; margin: 0;">
+      Q4. [question4]
+    </div>
+  </foreignObject>
+  <text x="70" y="555" class="question">Ans: _______________</text>
+  <line x1="105" y1="555" x2="724" y2="555" class="answer-line"/>
   
-  <text x="50" y="565" class="question">Q5. [question5]</text>
-  <text x="50" y="580" class="question">Ans: _______________</text>
-  <line x1="85" y1="580" x2="744" y2="580" class="answer-line"/>
+  <foreignObject x="70" y="575" width="654" height="25">
+    <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: Arial, sans-serif; font-size: 10px; color: #2c3e50; margin: 0;">
+      Q5. [question5]
+    </div>
+  </foreignObject>
+  <text x="70" y="600" class="question">Ans: _______________</text>
+  <line x1="105" y1="600" x2="724" y2="600" class="answer-line"/>
   
-  <!-- Extra space for more content if needed -->
-  <rect x="50" y="620" width="694" height="120" fill="none" stroke="#bdc3c7" stroke-width="1" stroke-dasharray="3,3"/>
-  <text x="60" y="635" class="small">Extra space for additional work:</text>
+  <!-- Extra space for more content -->
+  <rect x="70" y="630" width="654" height="120" fill="none" stroke="#bdc3c7" stroke-width="1" stroke-dasharray="3,3"/>
+  <text x="80" y="645" class="small">Extra space for additional work:</text>
   
-  <!-- Footer area -->
-  <rect x="30" y="1070" width="734" height="25" fill="#f8f9fa"/>
-  <text x="397" y="1085" class="small" text-anchor="middle">Page 1</text>
+  <!-- Footer within margins -->
+  <rect x="50" y="1048" width="694" height="25" fill="#f8f9fa"/>
+  <text x="397" y="1063" class="small" text-anchor="middle">Page 1</text>
 </svg>

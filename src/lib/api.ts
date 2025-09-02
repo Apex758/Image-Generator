@@ -69,6 +69,9 @@ export interface GenerateSVGRequest {
   image_aspect_ratio?: { width: number; height: number }; // For AI image generation
   image_count?: number;
   custom_instructions?: string;
+  include_activity_box?: boolean; // Toggle for activity drawing box
+  include_word_bank?: boolean; // NEW: Toggle for word bank (fill-in-the-blank)
+  max_pages?: number; // Maximum pages (for future multi-page support)
 }
 
 export interface GenerateSVGResponse {

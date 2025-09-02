@@ -12,85 +12,104 @@
     </style>
   </defs>
   
-  <!-- Background -->
+  <!-- A4 Background -->
   <rect width="794" height="1123" fill="#ffffff" stroke="none"/>
   
-  <!-- Header with name/date -->
-  <text x="50" y="50" class="small">Name: ________________</text>
-  <text x="550" y="50" class="small">Date: ________________</text>
+  <!-- Header with name/date and proper margins -->
+  <text x="70" y="70" class="small">Name: ________________</text>
+  <text x="570" y="70" class="small">Date: ________________</text>
   
   <!-- Title section -->
-  <text x="397" y="80" class="title">[subject]</text>
-  <text x="397" y="100" class="subtitle">[topic]</text>
+  <text x="397" y="100" class="title">[subject]</text>
+  <text x="397" y="120" class="subtitle">[topic]</text>
   
-  <!-- Instructions with proper text wrapping -->
-  <foreignObject x="50" y="120" width="694" height="35">
+  <!-- Instructions -->
+  <foreignObject x="70" y="140" width="654" height="35">
     <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: Arial, sans-serif; font-size: 12px; color: #2c3e50; font-weight: bold; line-height: 1.4; word-wrap: break-word; text-align: center; margin: 0; padding: 5px 0;">
       [instructions]
     </div>
   </foreignObject>
   
-  <!-- Image positioned center-left -->
-  <rect x="50" y="170" width="320" height="220" fill="#e8f4fd" stroke="#bdc3c7" stroke-width="2" stroke-dasharray="5,5" id="placeholder_image"/>
-  <!-- <text x="397" y="260" text-anchor="middle" class="placeholder">Image will appear here</text> -->
+  <!-- Image positioned center-left with proper spacing -->
+  <rect x="70" y="190" width="320" height="220" fill="#e8f4fd" stroke="#bdc3c7" stroke-width="2" stroke-dasharray="5,5" id="placeholder_image"/>
   
-  <!-- Multiple choice questions on the right side -->
-  <text x="390" y="190" class="question">1. [question1]</text>
-  <circle cx="400" cy="202" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
-  <text x="408" y="206" class="option">A) [OPTION_A]</text>
-  <circle cx="400" cy="215" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
-  <text x="408" y="219" class="option">B) [OPTION_B]</text>
-  <circle cx="400" cy="228" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
-  <text x="408" y="232" class="option">C) [OPTION_C]</text>
-  <circle cx="400" cy="241" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
-  <text x="408" y="245" class="option">D) [OPTION_D]</text>
+  <!-- Multiple choice questions on the right side with proper spacing -->
+  <foreignObject x="410" y="205" width="314" height="20">
+    <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: Arial, sans-serif; font-size: 11px; color: #2c3e50; margin: 0;">
+      1. [question1]
+    </div>
+  </foreignObject>
+  <circle cx="420" cy="232" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
+  <text x="428" y="236" class="option">A) [OPTION_A]</text>
+  <circle cx="420" cy="245" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
+  <text x="428" y="249" class="option">B) [OPTION_B]</text>
+  <circle cx="420" cy="258" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
+  <text x="428" y="262" class="option">C) [OPTION_C]</text>
+  <circle cx="420" cy="271" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
+  <text x="428" y="275" class="option">D) [OPTION_D]</text>
   
-  <text x="390" y="265" class="question">2. [question2]</text>
-  <circle cx="400" cy="277" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
-  <text x="408" y="281" class="option">A) [OPTION_A]</text>
-  <circle cx="400" cy="290" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
-  <text x="408" y="294" class="option">B) [OPTION_B]</text>
-  <circle cx="400" cy="303" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
-  <text x="408" y="307" class="option">C) [OPTION_C]</text>
-  <circle cx="400" cy="316" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
-  <text x="408" y="320" class="option">D) [OPTION_D]</text>
+  <foreignObject x="410" y="290" width="314" height="20">
+    <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: Arial, sans-serif; font-size: 11px; color: #2c3e50; margin: 0;">
+      2. [question2]
+    </div>
+  </foreignObject>
+  <circle cx="420" cy="317" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
+  <text x="428" y="321" class="option">A) [OPTION_A]</text>
+  <circle cx="420" cy="330" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
+  <text x="428" y="334" class="option">B) [OPTION_B]</text>
+  <circle cx="420" cy="343" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
+  <text x="428" y="347" class="option">C) [OPTION_C]</text>
+  <circle cx="420" cy="356" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
+  <text x="428" y="360" class="option">D) [OPTION_D]</text>
   
-  <text x="390" y="340" class="question">3. [question3]</text>
-  <circle cx="400" cy="352" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
-  <text x="408" y="356" class="option">A) [OPTION_A]</text>
-  <circle cx="400" cy="365" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
-  <text x="408" y="369" class="option">B) [OPTION_B]</text>
-  <circle cx="400" cy="378" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
-  <text x="408" y="382" class="option">C) [OPTION_C]</text>
-  <circle cx="400" cy="391" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
-  <text x="408" y="395" class="option">D) [OPTION_D]</text>
+  <foreignObject x="410" y="375" width="314" height="20">
+    <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: Arial, sans-serif; font-size: 11px; color: #2c3e50; margin: 0;">
+      3. [question3]
+    </div>
+  </foreignObject>
+  <circle cx="420" cy="402" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
+  <text x="428" y="406" class="option">A) [OPTION_A]</text>
+  <circle cx="420" cy="415" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
+  <text x="428" y="419" class="option">B) [OPTION_B]</text>
+  <circle cx="420" cy="428" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
+  <text x="428" y="432" class="option">C) [OPTION_C]</text>
+  <circle cx="420" cy="441" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
+  <text x="428" y="445" class="option">D) [OPTION_D]</text>
   
-  <!-- Additional questions below image -->
-  <text x="50" y="420" class="question">4. [question4]</text>
-  <circle cx="60" cy="432" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
-  <text x="68" y="436" class="option">A) [OPTION_A]</text>
-  <circle cx="180" cy="432" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
-  <text x="188" y="436" class="option">B) [OPTION_B]</text>
-  <circle cx="300" cy="432" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
-  <text x="308" y="436" class="option">C) [OPTION_C]</text>
-  <circle cx="420" cy="432" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
-  <text x="428" y="436" class="option">D) [OPTION_D]</text>
+  <!-- Additional questions below image with proper spacing -->
+  <foreignObject x="70" y="430" width="654" height="20">
+    <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: Arial, sans-serif; font-size: 11px; color: #2c3e50; margin: 0;">
+      4. [question4]
+    </div>
+  </foreignObject>
+  <circle cx="80" cy="457" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
+  <text x="88" y="461" class="option">A) [OPTION_A]</text>
+  <circle cx="200" cy="457" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
+  <text x="208" y="461" class="option">B) [OPTION_B]</text>
+  <circle cx="320" cy="457" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
+  <text x="328" y="461" class="option">C) [OPTION_C]</text>
+  <circle cx="440" cy="457" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
+  <text x="448" y="461" class="option">D) [OPTION_D]</text>
   
-  <text x="50" y="460" class="question">5. [question5]</text>
-  <circle cx="60" cy="472" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
-  <text x="68" y="476" class="option">A) [OPTION_A]</text>
-  <circle cx="180" cy="472" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
-  <text x="188" y="476" class="option">B) [OPTION_B]</text>
-  <circle cx="300" cy="472" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
-  <text x="308" y="476" class="option">C) [OPTION_C]</text>
-  <circle cx="420" cy="472" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
-  <text x="428" y="476" class="option">D) [OPTION_D]</text>
+  <foreignObject x="70" y="480" width="654" height="20">
+    <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: Arial, sans-serif; font-size: 11px; color: #2c3e50; margin: 0;">
+      5. [question5]
+    </div>
+  </foreignObject>
+  <circle cx="80" cy="507" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
+  <text x="88" y="511" class="option">A) [OPTION_A]</text>
+  <circle cx="200" cy="507" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
+  <text x="208" y="511" class="option">B) [OPTION_B]</text>
+  <circle cx="320" cy="507" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
+  <text x="328" y="511" class="option">C) [OPTION_C]</text>
+  <circle cx="440" cy="507" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
+  <text x="448" y="511" class="option">D) [OPTION_D]</text>
   
   <!-- Extra space for additional work -->
-  <rect x="50" y="500" width="694" height="100" fill="none" stroke="#bdc3c7" stroke-width="1" stroke-dasharray="3,3"/>
-  <text x="60" y="515" class="small">Extra space for work/explanations:</text>
+  <rect x="70" y="540" width="654" height="100" fill="none" stroke="#bdc3c7" stroke-width="1" stroke-dasharray="3,3"/>
+  <text x="80" y="555" class="small">Extra space for work/explanations:</text>
   
-  <!-- Footer area -->
-  <rect x="30" y="1070" width="734" height="25" fill="#f8f9fa"/>
-  <text x="397" y="1085" class="small" text-anchor="middle">Page 1</text>
+  <!-- Footer within margins -->
+  <rect x="50" y="1048" width="694" height="25" fill="#f8f9fa"/>
+  <text x="397" y="1063" class="small" text-anchor="middle">Page 1</text>
 </svg>
