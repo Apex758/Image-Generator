@@ -1172,7 +1172,7 @@ def extract_fill_in_blank_answers(questions: List[str]) -> List[str]:
 def generate_layout1_template_with_wordbank(num_questions: int, subject: str, grade_level: str, topic: str,
                                           include_activity_box: bool = True, include_word_bank: bool = True) -> str:
     """
-    Generate Layout 1 template with word bank support and overflow handling.
+    Generate Layout 1 template with word bank support and multi-page overflow handling.
     """
     
     # A4 dimensions with proper margins (50px on all sides)
@@ -1200,21 +1200,27 @@ def generate_layout1_template_with_wordbank(num_questions: int, subject: str, gr
     instructions_y = image_y + image_height + spacing
     questions_start_y = instructions_y + instructions_height + spacing
     
-    # Calculate how many questions can fit
-    available_height_for_questions = usable_height - (
+    # Calculate if we need a second page
+    total_content_height = (
         header_height + spacing +
-        topic_height + spacing +
+        topic_height + spacing + 
         image_height + spacing +
         instructions_height + spacing +
+        (num_questions * question_height) + spacing +
         word_bank_height + spacing +
         (activity_height + spacing if include_activity_box else 0) +
         footer_height + spacing
     )
     
-    max_questions_on_page = max(1, int(available_height_for_questions // question_height))
-    questions_on_page = min(num_questions, max_questions_on_page)
+    needs_second_page = total_content_height > svg_height
     
-    # FIXED: Generate ALL questions first, adjust other elements to fit
+    # If we need second page, calculate total SVG height
+    if needs_second_page:
+        total_svg_height = svg_height * 2 + 50  # Two A4 pages plus spacing
+    else:
+        total_svg_height = svg_height
+    
+    # FIXED: Generate ALL questions first
     questions_svg = ""
     for i in range(1, num_questions + 1):
         question_y = questions_start_y + ((i - 1) * question_height)
@@ -1248,14 +1254,20 @@ def generate_layout1_template_with_wordbank(num_questions: int, subject: str, gr
   <text x="{margin + 430}" y="{word_bank_y + 55}" class="small">[word_bank_word10]</text>
 '''
     
-    # Activity box position - comes after word bank
+    # Activity box position
     activity_y = word_bank_y + (word_bank_height + spacing if include_word_bank else 0)
     
-    # Activity box (only if enabled and fits on page, otherwise note for second page)
+    # Check if activity fits on page 1
+    activity_bottom = activity_y + activity_height + footer_height + spacing
+    activity_fits_on_page1 = activity_bottom <= svg_height
+    
+    # Activity and page 2 content
     activity_svg = ""
+    page2_svg = ""
+    
     if include_activity_box:
-        activity_bottom = activity_y + activity_height
-        if activity_bottom <= (svg_height - margin - footer_height - spacing):
+        if activity_fits_on_page1:
+            # Activity fits on page 1
             activity_svg = f'''
   <!-- Activity Section -->
   <text x="{margin + 20}" y="{activity_y}" class="instruction">Activity:</text>
@@ -1263,20 +1275,41 @@ def generate_layout1_template_with_wordbank(num_questions: int, subject: str, gr
   <rect x="{margin + 20}" y="{activity_y + 30}" width="{content_width - 40}" height="{activity_height - 30}" fill="none" stroke="#bdc3c7" stroke-width="1" stroke-dasharray="3,3"/>
 '''
         else:
-            activity_svg = f'''
-  <!-- Activity Notice -->
-  <rect x="{margin + 20}" y="{activity_y}" width="{content_width - 40}" height="30" fill="#e1f5fe" stroke="#81d4fa" stroke-width="1"/>
-  <text x="{margin + 30}" y="{activity_y + 20}" class="instruction" fill="#0277bd">
-    Activity box continues on page 2 due to space
-  </text>
+            # Activity goes to page 2
+            page2_y_start = svg_height + 50 + margin  # Start of page 2
+            
+            page2_svg = f'''
+  
+  <!-- Page 2 Content -->
+  <!-- Page 2 Header -->
+  <rect x="{margin}" y="{page2_y_start}" width="{content_width}" height="{header_height}" fill="#ffffff" stroke="#2c3e50" stroke-width="1"/>
+  <text x="{margin + 20}" y="{page2_y_start + 22}" class="title">[subject] - Grade [grade] (continued)</text>
+  <text x="{margin + 20}" y="{page2_y_start + 35}" class="small">Name: _______________</text>
+  <text x="{margin + 450}" y="{page2_y_start + 35}" class="small">Date: ______</text>
+  
+  <!-- Page 2 Topic -->
+  <text x="{svg_width // 2}" y="{page2_y_start + header_height + spacing + 15}" class="instruction" text-anchor="middle">Topic: [topic] (continued)</text>
+  
+  <!-- Page 2 Activity Section -->
+  <text x="{margin + 20}" y="{page2_y_start + header_height + spacing + 40}" class="instruction">Activity:</text>
+  <text x="{margin + 20}" y="{page2_y_start + header_height + spacing + 60}" class="small">Draw or write about what you learned from this image:</text>
+  <rect x="{margin + 20}" y="{page2_y_start + header_height + spacing + 70}" width="{content_width - 40}" height="200" fill="none" stroke="#bdc3c7" stroke-width="1" stroke-dasharray="3,3"/>
+  
+  <!-- Additional space for more activities -->
+  <text x="{margin + 20}" y="{page2_y_start + header_height + spacing + 290}" class="instruction">Additional Questions or Notes:</text>
+  <rect x="{margin + 20}" y="{page2_y_start + header_height + spacing + 310}" width="{content_width - 40}" height="150" fill="none" stroke="#bdc3c7" stroke-width="1" stroke-dasharray="3,3"/>
+  
+  <!-- Page 2 Footer -->
+  <rect x="{margin}" y="{page2_y_start + svg_height - 2*margin - footer_height}" width="{content_width}" height="{footer_height}" fill="#f8f9fa"/>
+  <text x="{svg_width // 2}" y="{page2_y_start + svg_height - 2*margin - 10}" class="small" text-anchor="middle">Page 2</text>
 '''
     
-    # Remove overflow notice since we now show all questions
-    overflow_notice = ""
+    # Determine which page number for page 1 footer
+    page1_footer_text = "Page 1" if needs_second_page else "Page 1"
     
     # Generate the complete SVG
     svg_content = f'''<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="{svg_width}" height="{svg_height}" viewBox="0 0 {svg_width} {svg_height}">
+<svg xmlns="http://www.w3.org/2000/svg" width="{svg_width}" height="{total_svg_height}" viewBox="0 0 {svg_width} {total_svg_height}">
   <defs>
     <style>
       .title {{ font-family: Arial, sans-serif; font-size: 18px; font-weight: bold; fill: #2c3e50; }}
@@ -1285,10 +1318,13 @@ def generate_layout1_template_with_wordbank(num_questions: int, subject: str, gr
       .instruction {{ font-family: Arial, sans-serif; font-size: 11px; fill: #2c3e50; font-weight: bold; }}
       .question {{ font-family: Arial, sans-serif; font-size: 11px; fill: #2c3e50; }}
       .placeholder {{ font-family: Arial, sans-serif; font-size: 12px; fill: #7f8c8d; }}
+      @media print {{
+        .page-break {{ page-break-before: always; }}
+      }}
     </style>
   </defs>
   
-  <!-- A4 Background -->
+  <!-- A4 Background Page 1 -->
   <rect width="{svg_width}" height="{svg_height}" fill="#ffffff" stroke="none"/>
   
   <!-- Header section -->
@@ -1317,9 +1353,10 @@ def generate_layout1_template_with_wordbank(num_questions: int, subject: str, gr
   
 {activity_svg}
   
-  <!-- Footer -->
+  <!-- Page 1 Footer -->
   <rect x="{margin}" y="{svg_height - margin - footer_height}" width="{content_width}" height="{footer_height}" fill="#f8f9fa"/>
-  <text x="{svg_width // 2}" y="{svg_height - margin - 10}" class="small" text-anchor="middle">Page 1</text>
+  <text x="{svg_width // 2}" y="{svg_height - margin - 10}" class="small" text-anchor="middle">{page1_footer_text}</text>
+{page2_svg}
 </svg>'''
     
     return svg_content

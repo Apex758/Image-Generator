@@ -105,7 +105,7 @@ export const SVGTextEditor: React.FC<SVGTextEditorProps> = ({
 
       // Extract from regular text elements
       const textElements = doc.querySelectorAll('text, tspan');
-      textElements.forEach((element, index) => {
+      textElements.forEach((element) => {
         const textContent = element.textContent?.trim();
         if (textContent && textContent.length > 0) {
           
@@ -258,44 +258,77 @@ export const SVGTextEditor: React.FC<SVGTextEditorProps> = ({
     setWordBankWords(words);
   }, [extractCoreContentFromSVG, extractWordsForWordBank]);
 
-  // FIXED: Update preview content with better replacement logic
+  // Store original content values for replacement tracking
+  const [originalContentMap, setOriginalContentMap] = useState<Record<string, string>>({});
+  const [lastUpdateTime] = useState(Date.now()); // Track updates for debugging
+
+  // FIXED: Real-time preview update that actually works
   const updatePreview = useCallback(() => {
     let updatedContent = svgContent;
     
-    // Replace content based on editable items
+    // Replace content based on editable items - handle both placeholder patterns AND actual content
     editableContent.forEach(item => {
       if (item.value && item.value.trim()) {
         const cleanValue = item.value.trim();
+        const originalValue = originalContentMap[item.id];
         
-        // Handle different types of content replacement
-        if (item.id === 'subject' || item.id === 'grade' || item.id === 'topic') {
-          // Handle header replacements
-          if (item.id === 'subject') {
-            updatedContent = updatedContent.replace(/\[subject\]/gi, cleanValue);
-          } else if (item.id === 'grade') {
-            updatedContent = updatedContent.replace(/\[grade\]/gi, cleanValue);
-          } else if (item.id === 'topic') {
-            updatedContent = updatedContent.replace(/\[topic\]/gi, cleanValue);
+        // Try multiple replacement strategies
+        if (item.id === 'subject') {
+          // Replace both placeholder and actual content
+          updatedContent = updatedContent.replace(/\[subject\]/gi, cleanValue);
+          if (originalValue) {
+            updatedContent = updatedContent.replace(new RegExp(originalValue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), cleanValue);
           }
-        } else if (item.id === 'instructions') {
-          // Handle instructions replacement
+          // Also try common patterns
+          updatedContent = updatedContent.replace(/Science - Grade/g, `${cleanValue} - Grade`);
+          updatedContent = updatedContent.replace(/Science<\/text>/g, `${cleanValue}</text>`);
+        }
+        else if (item.id === 'grade') {
+          updatedContent = updatedContent.replace(/\[grade\]/gi, cleanValue);
+          updatedContent = updatedContent.replace(/Grade \d+/g, cleanValue);
+          updatedContent = updatedContent.replace(/Grade Grade \d+/g, `Grade ${cleanValue}`);
+          if (originalValue) {
+            updatedContent = updatedContent.replace(new RegExp(originalValue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), cleanValue);
+          }
+        }
+        else if (item.id === 'topic') {
+          updatedContent = updatedContent.replace(/\[topic\]/gi, cleanValue);
+          updatedContent = updatedContent.replace(/Topic: [^<]*/g, `Topic: ${cleanValue}`);
+          if (originalValue) {
+            updatedContent = updatedContent.replace(new RegExp(originalValue.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), cleanValue);
+          }
+        }
+        else if (item.id === 'instructions') {
           updatedContent = updatedContent.replace(/\[instructions\]/gi, cleanValue);
-        } else if (item.id.startsWith('question_')) {
-          // Handle question replacements
+          // Replace in foreignObject div content
+          const instructionRegex = /<div[^>]*>(.*?)<\/div>/gs;
+          updatedContent = updatedContent.replace(instructionRegex, (match, content) => {
+            if (content.includes('Look at') || content.includes('Fill in') || content.includes('word bank')) {
+              return match.replace(content, cleanValue);
+            }
+            return match;
+          });
+        }
+        else if (item.id.startsWith('question_')) {
           const questionNum = item.id.replace('question_', '');
-          const pattern = new RegExp(`\\[question${questionNum}\\]`, 'gi');
-          updatedContent = updatedContent.replace(pattern, cleanValue);
+          updatedContent = updatedContent.replace(new RegExp(`\\[question${questionNum}\\]`, 'gi'), cleanValue);
+          
+          // Replace actual question content in foreignObject divs
+          const questionRegex = new RegExp(`<div[^>]*>\\s*${questionNum}\\.[^<]*</div>`, 'gs');
+          updatedContent = updatedContent.replace(questionRegex, (match) => {
+            return match.replace(/>\s*\d+\.[^<]*</, `>${cleanValue}<`);
+          });
         }
       }
     });
 
-    // Add word bank if enabled (remove any existing word bank first)
-    updatedContent = updatedContent.replace(/<!-- Word Bank Section -->[\s\S]*?(?=<!-- (?:Activity|Footer)|$)/g, '');
-    
+    // Handle word bank
     if (includeWordBank && wordBankWords.length > 0) {
+      // Remove existing word bank
+      updatedContent = updatedContent.replace(/<!-- Word Bank Section -->[\s\S]*?(?=<!-- (?:Activity|Footer)|$)/g, '');
+      
       const wordBankSVG = generateWordBankSVG(wordBankWords);
-      // Insert word bank before activity or footer
-      const insertPoint = updatedContent.indexOf('<!-- Activity Section -->') !== -1 
+      const insertPoint = updatedContent.indexOf('<!-- Activity Section -->') !== -1
         ? '<!-- Activity Section -->'
         : '<!-- Footer -->';
       updatedContent = updatedContent.replace(
@@ -305,7 +338,7 @@ export const SVGTextEditor: React.FC<SVGTextEditorProps> = ({
     }
     
     setPreviewContent(updatedContent);
-  }, [svgContent, editableContent, includeWordBank, wordBankWords]);
+  }, [svgContent, editableContent, includeWordBank, wordBankWords, originalContentMap]);
 
   // FIXED: Update preview when content changes with proper dependencies
   useEffect(() => {
@@ -331,6 +364,7 @@ export const SVGTextEditor: React.FC<SVGTextEditorProps> = ({
         item.id === id ? { ...item, value } : item
       )
     );
+    // No need for immediate update here - useEffect will handle it
   };
 
   const handleWordBankChange = (index: number, value: string) => {
@@ -339,6 +373,7 @@ export const SVGTextEditor: React.FC<SVGTextEditorProps> = ({
       newWords[index] = value;
       return newWords;
     });
+    // No need for immediate update here - useEffect will handle it
   };
 
   const addWordToBank = () => {
@@ -354,8 +389,18 @@ export const SVGTextEditor: React.FC<SVGTextEditorProps> = ({
   const handleReset = () => {
     const extracted = extractCoreContentFromSVG();
     setEditableContent(extracted);
+    
+    // Reset original content map
+    const originalMap: Record<string, string> = {};
+    extracted.forEach(item => {
+      originalMap[item.id] = item.value;
+    });
+    setOriginalContentMap(originalMap);
+    
     const words = extractWordsForWordBank(extracted);
     setWordBankWords(words);
+    
+    // The useEffect will handle the preview update
   };
 
   const generateWordBankSVG = (words: string[]): string => {
@@ -388,11 +433,11 @@ export const SVGTextEditor: React.FC<SVGTextEditorProps> = ({
     return wordBankSVG;
   };
 
-  // Memoize the SVG processing to avoid re-running on every render
+  // Memoize the SVG processing - re-process when preview content changes
   const processedSVG = useMemo(() => {
     const content = cleanSVGContent(previewContent);
     return content;
-  }, [previewContent]);
+  }, [previewContent]); // This will trigger re-processing when previewContent changes
 
   const handleSave = () => {
     // Create text replacements object with improved mapping
@@ -590,7 +635,10 @@ export const SVGTextEditor: React.FC<SVGTextEditorProps> = ({
           <div className="space-y-4">
             <div className="bg-green-50 border border-green-200 rounded-lg p-4">
               <h4 className="text-sm font-medium text-green-800 mb-2">
-                ✨ Live Preview
+                ✨ Live Preview 
+                <span className="text-xs text-green-600 ml-2">
+                  (Last updated: {new Date(lastUpdateTime).toLocaleTimeString()})
+                </span>
               </h4>
               <p className="text-xs text-green-600">
                 Changes update automatically as you type. Preview refreshes in real-time.
@@ -611,6 +659,7 @@ export const SVGTextEditor: React.FC<SVGTextEditorProps> = ({
                   <div
                     className="inline-block shadow-lg rounded-lg overflow-hidden bg-white"
                     style={{ maxWidth: '100%', height: 'auto' }}
+                    key={previewContent.length} // Force re-render when content changes
                     dangerouslySetInnerHTML={{ __html: processedSVG }}
                   />
                 </div>
