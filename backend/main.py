@@ -1172,7 +1172,7 @@ def extract_fill_in_blank_answers(questions: List[str]) -> List[str]:
 def generate_layout1_template_with_wordbank(num_questions: int, subject: str, grade_level: str, topic: str,
                                           include_activity_box: bool = True, include_word_bank: bool = True) -> str:
     """
-    Generate Layout 1 template with word bank support and multi-page overflow handling.
+    Generate Layout 1 template with proper multi-page overflow handling.
     """
     
     # A4 dimensions with proper margins (50px on all sides)
@@ -1193,38 +1193,39 @@ def generate_layout1_template_with_wordbank(num_questions: int, subject: str, gr
     footer_height = 25
     spacing = 15
     
-    # Calculate Y positions
+    # Calculate Y positions for page 1
     header_y = margin
     topic_y = header_y + header_height + spacing
     image_y = topic_y + topic_height + spacing
     instructions_y = image_y + image_height + spacing
     questions_start_y = instructions_y + instructions_height + spacing
     
-    # Calculate if we need a second page
-    total_content_height = (
-        header_height + spacing +
-        topic_height + spacing + 
-        image_height + spacing +
-        instructions_height + spacing +
-        (num_questions * question_height) + spacing +
-        word_bank_height + spacing +
-        (activity_height + spacing if include_activity_box else 0) +
-        footer_height + spacing
-    )
+    # Calculate how many questions fit on page 1
+    available_space_page1 = svg_height - questions_start_y - footer_height - margin - spacing
     
-    needs_second_page = total_content_height > svg_height
+    # Reserve space for word bank and activity if they fit
+    word_bank_space = word_bank_height + spacing if include_word_bank else 0
+    activity_space = activity_height + spacing if include_activity_box else 0
     
-    # If we need second page, calculate total SVG height
+    # Determine what fits on page 1
+    space_for_questions_page1 = available_space_page1 - word_bank_space - activity_space
+    questions_per_page1 = max(1, int(space_for_questions_page1 // question_height))
+    
+    # Check if we need page 2
+    remaining_questions = max(0, num_questions - questions_per_page1)
+    needs_second_page = remaining_questions > 0 or (include_activity_box and activity_space > space_for_questions_page1)
+    
+    # Calculate total SVG height
     if needs_second_page:
         total_svg_height = svg_height * 2 + 50  # Two A4 pages plus spacing
     else:
         total_svg_height = svg_height
     
-    # FIXED: Generate ALL questions first
-    questions_svg = ""
-    for i in range(1, num_questions + 1):
+    # Generate questions for page 1
+    page1_questions_svg = ""
+    for i in range(1, min(questions_per_page1 + 1, num_questions + 1)):
         question_y = questions_start_y + ((i - 1) * question_height)
-        questions_svg += f'''
+        page1_questions_svg += f'''
   <foreignObject x="{margin + 20}" y="{question_y}" width="{content_width - 40}" height="{question_height - 5}">
     <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: Arial, sans-serif; font-size: 11px; color: #2c3e50; line-height: 1.4; word-wrap: break-word; margin: 0; padding: 2px 0;">
       {i}. [question{i}]
@@ -1232,12 +1233,13 @@ def generate_layout1_template_with_wordbank(num_questions: int, subject: str, gr
   </foreignObject>
 '''
     
-    # Calculate word bank position - AFTER all questions
-    word_bank_y = questions_start_y + (num_questions * question_height) + spacing
+    # Calculate positions for page 1 elements
+    page1_questions_end_y = questions_start_y + (questions_per_page1 * question_height)
+    word_bank_y = page1_questions_end_y + spacing
     
-    # Word bank section (only for fill-in-the-blank)
+    # Word bank for page 1
     word_bank_svg = ""
-    if include_word_bank:
+    if include_word_bank and not needs_second_page:
         word_bank_svg = f'''
   <!-- Word Bank Section -->
   <rect x="{margin + 20}" y="{word_bank_y}" width="{content_width - 40}" height="{word_bank_height}" fill="#f8f9fa" stroke="#dee2e6" stroke-width="1"/>
@@ -1254,31 +1256,24 @@ def generate_layout1_template_with_wordbank(num_questions: int, subject: str, gr
   <text x="{margin + 430}" y="{word_bank_y + 55}" class="small">[word_bank_word10]</text>
 '''
     
-    # Activity box position
-    activity_y = word_bank_y + (word_bank_height + spacing if include_word_bank else 0)
-    
-    # Check if activity fits on page 1
-    activity_bottom = activity_y + activity_height + footer_height + spacing
-    activity_fits_on_page1 = activity_bottom <= svg_height
-    
-    # Activity and page 2 content
+    # Activity for page 1 (only if it fits)
+    activity_y = word_bank_y + (word_bank_height + spacing if include_word_bank and not needs_second_page else 0)
     activity_svg = ""
-    page2_svg = ""
-    
-    if include_activity_box:
-        if activity_fits_on_page1:
-            # Activity fits on page 1
-            activity_svg = f'''
+    if include_activity_box and not needs_second_page:
+        activity_svg = f'''
   <!-- Activity Section -->
   <text x="{margin + 20}" y="{activity_y}" class="instruction">Activity:</text>
   <text x="{margin + 20}" y="{activity_y + 20}" class="small">Draw or write about what you learned from this image:</text>
   <rect x="{margin + 20}" y="{activity_y + 30}" width="{content_width - 40}" height="{activity_height - 30}" fill="none" stroke="#bdc3c7" stroke-width="1" stroke-dasharray="3,3"/>
 '''
-        else:
-            # Activity goes to page 2
-            page2_y_start = svg_height + 50 + margin  # Start of page 2
-            
-            page2_svg = f'''
+    
+    # Generate Page 2 content if needed
+    page2_svg = ""
+    if needs_second_page:
+        page2_y_start = svg_height + 50 + margin  # Start of page 2
+        
+        # Page 2 header
+        page2_header = f'''
   
   <!-- Page 2 Content -->
   <!-- Page 2 Header -->
@@ -1289,23 +1284,71 @@ def generate_layout1_template_with_wordbank(num_questions: int, subject: str, gr
   
   <!-- Page 2 Topic -->
   <text x="{svg_width // 2}" y="{page2_y_start + header_height + spacing + 15}" class="instruction" text-anchor="middle">Topic: [topic] (continued)</text>
-  
+'''
+        
+        # Generate remaining questions for page 2
+        page2_questions_svg = ""
+        page2_questions_start_y = page2_y_start + header_height + spacing + topic_height + spacing
+        
+        for i in range(questions_per_page1 + 1, num_questions + 1):
+            question_index_on_page2 = i - questions_per_page1 - 1
+            question_y = page2_questions_start_y + (question_index_on_page2 * question_height)
+            page2_questions_svg += f'''
+  <foreignObject x="{margin + 20}" y="{question_y}" width="{content_width - 40}" height="{question_height - 5}">
+    <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: Arial, sans-serif; font-size: 11px; color: #2c3e50; line-height: 1.4; word-wrap: break-word; margin: 0; padding: 2px 0;">
+      {i}. [question{i}]
+    </div>
+  </foreignObject>
+'''
+        
+        # Word bank on page 2 (if enabled)
+        page2_word_bank_svg = ""
+        if include_word_bank:
+            page2_word_bank_y = page2_questions_start_y + (remaining_questions * question_height) + spacing
+            page2_word_bank_svg = f'''
+  <!-- Page 2 Word Bank Section -->
+  <rect x="{margin + 20}" y="{page2_word_bank_y}" width="{content_width - 40}" height="{word_bank_height}" fill="#f8f9fa" stroke="#dee2e6" stroke-width="1"/>
+  <text x="{margin + 30}" y="{page2_word_bank_y + 20}" class="instruction">Word Bank:</text>
+  <text x="{margin + 30}" y="{page2_word_bank_y + 35}" class="small">[word_bank_word1]</text>
+  <text x="{margin + 130}" y="{page2_word_bank_y + 35}" class="small">[word_bank_word2]</text>
+  <text x="{margin + 230}" y="{page2_word_bank_y + 35}" class="small">[word_bank_word3]</text>
+  <text x="{margin + 330}" y="{page2_word_bank_y + 35}" class="small">[word_bank_word4]</text>
+  <text x="{margin + 430}" y="{page2_word_bank_y + 35}" class="small">[word_bank_word5]</text>
+  <text x="{margin + 30}" y="{page2_word_bank_y + 55}" class="small">[word_bank_word6]</text>
+  <text x="{margin + 130}" y="{page2_word_bank_y + 55}" class="small">[word_bank_word7]</text>
+  <text x="{margin + 230}" y="{page2_word_bank_y + 55}" class="small">[word_bank_word8]</text>
+  <text x="{margin + 330}" y="{page2_word_bank_y + 55}" class="small">[word_bank_word9]</text>
+  <text x="{margin + 430}" y="{page2_word_bank_y + 55}" class="small">[word_bank_word10]</text>
+'''
+        
+        # Activity box on page 2 (if enabled)
+        page2_activity_svg = ""
+        if include_activity_box:
+            page2_activity_y = page2_word_bank_y + (word_bank_height + spacing if include_word_bank else 0)
+            page2_activity_svg = f'''
   <!-- Page 2 Activity Section -->
-  <text x="{margin + 20}" y="{page2_y_start + header_height + spacing + 40}" class="instruction">Activity:</text>
-  <text x="{margin + 20}" y="{page2_y_start + header_height + spacing + 60}" class="small">Draw or write about what you learned from this image:</text>
-  <rect x="{margin + 20}" y="{page2_y_start + header_height + spacing + 70}" width="{content_width - 40}" height="200" fill="none" stroke="#bdc3c7" stroke-width="1" stroke-dasharray="3,3"/>
+  <text x="{margin + 20}" y="{page2_activity_y}" class="instruction">Activity:</text>
+  <text x="{margin + 20}" y="{page2_activity_y + 20}" class="small">Draw or write about what you learned from this image:</text>
+  <rect x="{margin + 20}" y="{page2_activity_y + 30}" width="{content_width - 40}" height="{activity_height - 30}" fill="none" stroke="#bdc3c7" stroke-width="1" stroke-dasharray="3,3"/>
   
   <!-- Additional space for more activities -->
-  <text x="{margin + 20}" y="{page2_y_start + header_height + spacing + 290}" class="instruction">Additional Questions or Notes:</text>
-  <rect x="{margin + 20}" y="{page2_y_start + header_height + spacing + 310}" width="{content_width - 40}" height="150" fill="none" stroke="#bdc3c7" stroke-width="1" stroke-dasharray="3,3"/>
+  <text x="{margin + 20}" y="{page2_activity_y + activity_height + 20}" class="instruction">Additional Questions or Notes:</text>
+  <rect x="{margin + 20}" y="{page2_activity_y + activity_height + 40}" width="{content_width - 40}" height="100" fill="none" stroke="#bdc3c7" stroke-width="1" stroke-dasharray="3,3"/>
+'''
+        
+        # Page 2 footer
+        page2_footer = f'''
   
   <!-- Page 2 Footer -->
   <rect x="{margin}" y="{page2_y_start + svg_height - 2*margin - footer_height}" width="{content_width}" height="{footer_height}" fill="#f8f9fa"/>
   <text x="{svg_width // 2}" y="{page2_y_start + svg_height - 2*margin - 10}" class="small" text-anchor="middle">Page 2</text>
 '''
+        
+        # Combine all page 2 content
+        page2_svg = page2_header + page2_questions_svg + page2_word_bank_svg + page2_activity_svg + page2_footer
     
-    # Determine which page number for page 1 footer
-    page1_footer_text = "Page 1" if needs_second_page else "Page 1"
+    # Determine page 1 footer text
+    page1_footer_text = "Page 1 of 2" if needs_second_page else "Page 1"
     
     # Generate the complete SVG
     svg_content = f'''<?xml version="1.0" encoding="UTF-8"?>
@@ -1346,8 +1389,8 @@ def generate_layout1_template_with_wordbank(num_questions: int, subject: str, gr
     </div>
   </foreignObject>
   
-  <!-- Questions section -->
-{questions_svg}
+  <!-- Page 1 Questions section -->
+{page1_questions_svg}
   
 {word_bank_svg}
   
