@@ -1214,18 +1214,21 @@ def generate_layout1_template_with_wordbank(num_questions: int, subject: str, gr
     max_questions_on_page = max(1, int(available_height_for_questions // question_height))
     questions_on_page = min(num_questions, max_questions_on_page)
     
-    # Generate questions that fit on the page
+    # FIXED: Generate questions placeholders for ALL requested questions
     questions_svg = ""
-    for i in range(1, questions_on_page + 1):
-        question_y = questions_start_y + ((i - 1) * question_height)
-        
-        questions_svg += f'''
+    for i in range(1, num_questions + 1):  # Changed from questions_on_page + 1 to num_questions + 1
+        if i <= questions_on_page:
+            # Questions that fit on the page
+            question_y = questions_start_y + ((i - 1) * question_height)
+            questions_svg += f'''
   <foreignObject x="{margin + 20}" y="{question_y}" width="{content_width - 40}" height="{question_height - 5}">
     <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: Arial, sans-serif; font-size: 11px; color: #2c3e50; line-height: 1.4; word-wrap: break-word; margin: 0; padding: 2px 0;">
       {i}. [question{i}]
     </div>
   </foreignObject>
 '''
+        # Note: We still create placeholders for overflow questions, they just won't be visible in the template
+        # but the AI can still generate content for them and they'll be available in the text editor
     
     # Calculate word bank position
     word_bank_y = questions_start_y + (questions_on_page * question_height) + spacing

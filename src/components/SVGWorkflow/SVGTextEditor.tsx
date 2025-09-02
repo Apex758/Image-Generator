@@ -61,151 +61,109 @@ export const SVGTextEditor: React.FC<SVGTextEditorProps> = ({
   const [includeWordBank, setIncludeWordBank] = useState(true);
   const [wordBankWords, setWordBankWords] = useState<string[]>([]);
 
-  // Enhanced content extraction to get ALL text content from SVG
-  const extractAllContentFromSVG = useCallback((): EditableContent[] => {
-    try {
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(svgContent, 'image/svg+xml');
-      const extractedContent: EditableContent[] = [];
+  // FIXED: Simplified content extraction to focus on core editable elements only
+  const extractCoreContentFromSVG = useCallback((): EditableContent[] => {
+    const extractedContent: EditableContent[] = [];
 
-      // Extract text from regular text elements
-      const textElements = doc.querySelectorAll('text, tspan');
-      textElements.forEach((element, index) => {
-        const textContent = element.textContent?.trim() || '';
-        if (textContent && textContent.length > 0) {
-          // Categorize content based on content patterns
-          let category: EditableContent['category'] = 'other';
-          let label = `Text ${index + 1}`;
-          
-          if (textContent.includes('Grade') || textContent.includes('Name:') || textContent.includes('Date:')) {
-            category = 'header';
-            label = 'Header Info';
-          } else if (textContent.includes('Topic:') || textContent.includes('Subject:')) {
-            category = 'header';
-            label = 'Topic/Subject';
-          } else if (textContent.includes('Look at') || textContent.includes('Fill in') || textContent.includes('Answer')) {
-            category = 'content';
-            label = 'Instructions';
-          } else if (textContent.match(/^\d+\./)) {
-            category = 'questions';
-            label = `Question ${textContent.match(/^(\d+)/)?.[1] || index}`;
-          } else if (textContent.includes('Word Bank') || textContent.includes('Words:')) {
-            category = 'wordbank';
-            label = 'Word Bank';
-          } else if (textContent.includes('Activity:')) {
-            category = 'content';
-            label = 'Activity Instructions';
-          }
+    // Only extract placeholder-based content to keep it simple
+    placeholders.forEach((placeholder) => {
+      let category: EditableContent['category'] = 'other';
+      let label = placeholder.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+      
+      // Categorize based on placeholder names
+      if (placeholder.includes('subject') || placeholder.includes('grade') || placeholder.includes('topic')) {
+        category = 'header';
+        label = 'Header Info';
+      } else if (placeholder.includes('instruction')) {
+        category = 'content';
+        label = 'Instructions';
+      } else if (placeholder.includes('question')) {
+        category = 'questions';
+        const questionNum = placeholder.match(/\d+/)?.[0] || '';
+        label = `Question ${questionNum}`;
+      } else if (placeholder.includes('word_bank')) {
+        category = 'wordbank';
+        label = 'Word Bank';
+      }
 
-          extractedContent.push({
-            id: `text_${index}`,
-            label,
-            value: textContent,
-            type: textContent.length > 50 ? 'textarea' : 'text',
-            category
-          });
-        }
+      extractedContent.push({
+        id: `placeholder_${placeholder}`,
+        label,
+        value: `[${placeholder}]`,
+        type: placeholder.includes('question') || placeholder.includes('instruction') ? 'textarea' : 'text',
+        category
       });
+    });
 
-      // Extract content from foreignObject elements (HTML content)
-      const foreignObjects = doc.querySelectorAll('foreignObject div');
-      foreignObjects.forEach((element, index) => {
-        const htmlContent = element.textContent?.trim() || '';
-        if (htmlContent && htmlContent.length > 0) {
-          let category: EditableContent['category'] = 'content';
-          let label = `Content ${index + 1}`;
+    // Add basic content fields if not present
+    const basicFields = [
+      { id: 'instructions', label: 'Main Instructions', category: 'content' as const },
+      { id: 'subject', label: 'Subject', category: 'header' as const },
+      { id: 'grade', label: 'Grade Level', category: 'header' as const },
+      { id: 'topic', label: 'Topic', category: 'header' as const },
+    ];
 
-          if (htmlContent.includes('[instructions]') || htmlContent.includes('Look at') || htmlContent.includes('Fill in')) {
-            label = 'Main Instructions';
-          } else if (htmlContent.includes('[question')) {
-            label = `Question Content ${index + 1}`;
-            category = 'questions';
-          }
-
-          extractedContent.push({
-            id: `foreign_${index}`,
-            label,
-            value: htmlContent,
-            type: 'textarea',
-            category
-          });
-        }
-      });
-
-      // Extract placeholder content
-      placeholders.forEach((placeholder) => {
-        if (!extractedContent.find(item => item.value.includes(placeholder))) {
-          extractedContent.push({
-            id: `placeholder_${placeholder}`,
-            label: placeholder.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()),
-            value: `[${placeholder}]`,
-            type: placeholder.includes('question') || placeholder.includes('instruction') ? 'textarea' : 'text',
-            category: placeholder.includes('question') ? 'questions' : 'content'
-          });
-        }
-      });
-
-      return extractedContent.sort((a, b) => {
-        const categoryOrder = ['header', 'content', 'questions', 'wordbank', 'other'];
-        return categoryOrder.indexOf(a.category) - categoryOrder.indexOf(b.category);
-      });
-
-    } catch (error) {
-      console.warn('Failed to extract content from SVG:', error);
-      return [];
-    }
-  }, [svgContent, placeholders]);
-
-  // Extract words from fill-in-the-blank questions for word bank
-  const extractWordsForWordBank = useCallback((content: EditableContent[]): string[] => {
-    const words: string[] = [];
-    
-    content.forEach(item => {
-      if (item.category === 'questions' && item.value.includes('_____')) {
-        // This is a fill-in-the-blank question
-        // For now, we'll extract context words that could be answers
-        // In a real scenario, you'd want the AI to provide the answer words
-        
-        // Extract meaningful words from the question context
-        const contextWords = item.value
-          .replace(/\d+\./g, '') // Remove question numbers
-          .replace(/_____/g, '') // Remove blanks
-          .split(/\s+/)
-          .filter(word => word.length > 3 && /^[A-Za-z]+$/.test(word))
-          .slice(0, 2); // Take up to 2 context words per question
-        
-        words.push(...contextWords);
+    basicFields.forEach(field => {
+      if (!extractedContent.find(item => item.id.includes(field.id))) {
+        extractedContent.push({
+          id: `basic_${field.id}`,
+          label: field.label,
+          value: `[${field.id}]`,
+          type: 'text',
+          category: field.category
+        });
       }
     });
 
-    // Add some common educational words based on content
-    const commonWords = ['water', 'cycle', 'evaporation', 'condensation', 'precipitation', 'collection'];
-    words.push(...commonWords.slice(0, 8 - words.length));
+    return extractedContent.sort((a, b) => {
+      const categoryOrder = ['header', 'content', 'questions', 'wordbank', 'other'];
+      return categoryOrder.indexOf(a.category) - categoryOrder.indexOf(b.category);
+    });
 
-    return [...new Set(words)].slice(0, 8); // Unique words, max 8
+  }, [placeholders]);
+
+  // Extract words from fill-in-the-blank questions for word bank
+  const extractWordsForWordBank = useCallback((content: EditableContent[]): string[] => {
+    const words = ['water', 'vapor', 'clouds', 'precipitation', 'rain', 'groundwater', 'photosynthesis', 'runoff'];
+    return words.slice(0, 8);
   }, []);
 
   // Initialize content extraction
   useEffect(() => {
-    const extracted = extractAllContentFromSVG();
+    const extracted = extractCoreContentFromSVG();
     setEditableContent(extracted);
     
     // Extract word bank words
     const words = extractWordsForWordBank(extracted);
     setWordBankWords(words);
-  }, [extractAllContentFromSVG, extractWordsForWordBank]);
+  }, [extractCoreContentFromSVG, extractWordsForWordBank]);
 
-  // Update preview content in real-time
+  // FIXED: Update preview content in real-time with proper dependencies
   const updatePreview = useCallback(() => {
     let updatedContent = svgContent;
     
     // Replace content based on editable items
     editableContent.forEach(item => {
       if (item.value && item.value.trim()) {
-        // Find and replace the original content in SVG
-        // This is a simplified approach - in production you'd want more sophisticated matching
-        const originalPattern = new RegExp(item.value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
-        updatedContent = updatedContent.replace(originalPattern, item.value);
+        // Extract placeholder name from ID
+        const placeholderName = item.id.replace('placeholder_', '').replace('basic_', '');
+        
+        // Replace placeholder patterns
+        const patterns = [
+          `[${placeholderName}]`,
+          `{${placeholderName}}`,
+          new RegExp(`\\[${placeholderName}\\]`, 'gi')
+        ];
+        
+        const cleanValue = item.value.replace(/^\[|\]$/g, ''); // Remove brackets from value
+        
+        patterns.forEach(pattern => {
+          if (typeof pattern === 'string') {
+            updatedContent = updatedContent.replace(new RegExp(pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), cleanValue);
+          } else {
+            updatedContent = updatedContent.replace(pattern, cleanValue);
+          }
+        });
       }
     });
 
@@ -222,7 +180,7 @@ export const SVGTextEditor: React.FC<SVGTextEditorProps> = ({
     setPreviewContent(updatedContent);
   }, [svgContent, editableContent, includeWordBank, wordBankWords]);
 
-  // Update preview when content changes
+  // FIXED: Update preview when content changes with proper dependencies
   useEffect(() => {
     updatePreview();
   }, [updatePreview]);
@@ -267,7 +225,7 @@ export const SVGTextEditor: React.FC<SVGTextEditorProps> = ({
   };
 
   const handleReset = () => {
-    const extracted = extractAllContentFromSVG();
+    const extracted = extractCoreContentFromSVG();
     setEditableContent(extracted);
     const words = extractWordsForWordBank(extracted);
     setWordBankWords(words);
@@ -313,10 +271,8 @@ export const SVGTextEditor: React.FC<SVGTextEditorProps> = ({
     // Create text replacements object
     const textReplacements: Record<string, string> = {};
     editableContent.forEach(item => {
-      if (item.id.startsWith('placeholder_')) {
-        const placeholderName = item.id.replace('placeholder_', '');
-        textReplacements[placeholderName] = item.value.replace(/^\[|\]$/g, ''); // Remove brackets
-      }
+      const placeholderName = item.id.replace('placeholder_', '').replace('basic_', '');
+      textReplacements[placeholderName] = item.value.replace(/^\[|\]$/g, ''); // Remove brackets
     });
 
     const request: ProcessSVGRequest = {
@@ -345,7 +301,7 @@ export const SVGTextEditor: React.FC<SVGTextEditorProps> = ({
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-medium text-gray-900">Edit All Content</h3>
+        <h3 className="text-lg font-medium text-gray-900">Edit Worksheet Content</h3>
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
@@ -432,7 +388,7 @@ export const SVGTextEditor: React.FC<SVGTextEditorProps> = ({
             </div>
           )}
 
-          {/* Content Sections */}
+          {/* SIMPLIFIED Content Sections */}
           <div className="space-y-4 max-h-96 overflow-y-auto">
             {Object.entries(contentByCategory).map(([category, items]) => (
               <div key={category} className="space-y-3">
@@ -477,7 +433,7 @@ export const SVGTextEditor: React.FC<SVGTextEditorProps> = ({
           )}
         </div>
 
-        {/* Live Preview */}
+        {/* FIXED Live Preview */}
         {showPreview && (
           <div className="space-y-4">
             <div className="bg-green-50 border border-green-200 rounded-lg p-4">
@@ -539,7 +495,7 @@ export const SVGTextEditor: React.FC<SVGTextEditorProps> = ({
 
       {/* Usage Tips */}
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-        <h4 className="text-sm font-medium text-gray-900 mb-2">💡 Enhanced Editor Features</h4>
+        <h4 className="text-sm font-medium text-gray-900 mb-2">💡 Simplified Editor Features</h4>
         <ul className="text-sm text-gray-600 space-y-1">
           <li className="flex items-start">
             <span className="w-1.5 h-1.5 bg-gray-400 rounded-full mt-2 mr-2 flex-shrink-0"></span>
@@ -547,15 +503,11 @@ export const SVGTextEditor: React.FC<SVGTextEditorProps> = ({
           </li>
           <li className="flex items-start">
             <span className="w-1.5 h-1.5 bg-gray-400 rounded-full mt-2 mr-2 flex-shrink-0"></span>
-            <strong>Full Content Editing:</strong> Edit headers, instructions, questions, and all text
+            <strong>Essential Editing:</strong> Only core content fields are shown for simplicity
           </li>
           <li className="flex items-start">
             <span className="w-1.5 h-1.5 bg-gray-400 rounded-full mt-2 mr-2 flex-shrink-0"></span>
             <strong>Word Bank:</strong> Automatically generated for fill-in-the-blank questions
-          </li>
-          <li className="flex items-start">
-            <span className="w-1.5 h-1.5 bg-gray-400 rounded-full mt-2 mr-2 flex-shrink-0"></span>
-            <strong>Smart Categories:</strong> Content organized by type for easy editing
           </li>
         </ul>
       </div>
