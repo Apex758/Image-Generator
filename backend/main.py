@@ -1044,6 +1044,446 @@ class SVGService:
 # Initialize SVG service
 svg_service = SVGService()
 
+def generate_dynamic_svg_template(content_type: str, layout_style: str, num_questions: int,
+                                 subject: str, grade_level: str, topic: str) -> str:
+    """
+    Generate a dynamic SVG template based on the number of questions specified.
+    """
+    
+    if content_type == "image_comprehension":
+        return generate_dynamic_image_comprehension_template(layout_style, num_questions, subject, grade_level, topic)
+    elif content_type == "math":
+        return generate_dynamic_math_template(num_questions, subject, grade_level, topic)
+    elif content_type == "comic":
+        return generate_dynamic_comic_template(num_questions, subject, grade_level, topic)
+    elif content_type == "worksheet":
+        return generate_dynamic_worksheet_template(num_questions, subject, grade_level, topic)
+    else:
+        raise ValueError(f"Unsupported content type: {content_type}")
+
+def generate_dynamic_image_comprehension_template(layout_style: str, num_questions: int,
+                                                subject: str, grade_level: str, topic: str) -> str:
+    """
+    Generate a dynamic image comprehension template.
+    """
+    
+    if layout_style == "layout1":
+        return generate_layout1_template(num_questions, subject, grade_level, topic)
+    elif layout_style == "layout2":
+        return generate_layout2_template(num_questions, subject, grade_level, topic)
+    elif layout_style == "layout3":
+        return generate_layout3_template(num_questions, subject, grade_level, topic)
+    else:
+        # Default to layout1
+        return generate_layout1_template(num_questions, subject, grade_level, topic)
+
+def generate_layout1_template(num_questions: int, subject: str, grade_level: str, topic: str) -> str:
+    """
+    Generate Layout 1 template with dynamic number of questions.
+    """
+    
+    # Base height calculations
+    header_height = 90
+    image_height = 280
+    instructions_height = 50
+    question_height = 50  # Height per question (including answer lines)
+    activity_height = 140
+    footer_height = 30
+    padding = 30
+    
+    # Calculate total height needed
+    total_content_height = (header_height + image_height + instructions_height +
+                           (num_questions * question_height) + activity_height + footer_height)
+    
+    # Ensure minimum A4 height
+    svg_height = max(1123, total_content_height + (2 * padding))
+    
+    # Generate questions dynamically
+    questions_svg = ""
+    current_y = header_height + image_height + instructions_height + padding
+    
+    for i in range(1, num_questions + 1):
+        question_y = current_y + ((i - 1) * question_height)
+        line1_y = question_y + 15
+        line2_y = question_y + 30
+        
+        questions_svg += f'''
+  <text x="50" y="{question_y}" class="question">{i}. [question{i}]</text>
+  <line x1="50" y1="{line1_y}" x2="744" y2="{line1_y}" class="answer-line"/>
+  <line x1="50" y1="{line2_y}" x2="744" y2="{line2_y}" class="answer-line"/>
+'''
+    
+    # Activity section Y position
+    activity_y = current_y + (num_questions * question_height) + 20
+    
+    # Generate the complete SVG
+    svg_content = f'''<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="794" height="{svg_height}" viewBox="0 0 794 {svg_height}">
+  <defs>
+    <style>
+      .title {{ font-family: Arial, sans-serif; font-size: 18px; font-weight: bold; fill: #2c3e50; }}
+      .subtitle {{ font-family: Arial, sans-serif; font-size: 12px; fill: #34495e; }}
+      .small {{ font-family: Arial, sans-serif; font-size: 10px; fill: #2c3e50; }}
+      .instruction {{ font-family: Arial, sans-serif; font-size: 11px; fill: #2c3e50; font-weight: bold; }}
+      .question {{ font-family: Arial, sans-serif; font-size: 10px; fill: #2c3e50; }}
+      .placeholder {{ font-family: Arial, sans-serif; font-size: 12px; fill: #7f8c8d; }}
+      .answer-line {{ stroke: #bdc3c7; stroke-width: 1; fill: none; }}
+    </style>
+  </defs>
+  
+  <!-- Background with proper A4 margins -->
+  <rect width="794" height="{svg_height}" fill="#ffffff" stroke="none"/>
+  
+  <!-- Header section -->
+  <rect x="30" y="30" width="734" height="40" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+  <text x="50" y="50" class="title">[subject] - Grade [grade]</text>
+  <text x="50" y="65" class="small">Name: _______________</text>
+  <text x="500" y="65" class="small">Date: ______</text>
+  
+  <!-- Topic -->
+  <text x="397" y="95" class="instruction" text-anchor="middle">Topic: [topic]</text>
+  
+  <!-- Image section with proper centering -->
+  <rect x="197" y="110" width="400" height="280" fill="#e8f4fd" stroke="#bdc3c7" stroke-width="2" stroke-dasharray="5,5" id="placeholder_image"/>
+  
+  <!-- Instructions with proper wrapping and spacing -->
+  <foreignObject x="50" y="410" width="694" height="50">
+    <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: Arial, sans-serif; font-size: 11px; color: #2c3e50; font-weight: bold; line-height: 1.4; word-wrap: break-word; margin: 0; padding: 5px 0;">
+      [instructions]
+    </div>
+  </foreignObject>
+  
+  <!-- Questions section with proper spacing -->
+{questions_svg}
+  
+  <!-- Activity Section with proper spacing -->
+  <text x="50" y="{activity_y}" class="instruction">Activity:</text>
+  <text x="50" y="{activity_y + 15}" class="small">Draw or write about what you learned from this image:</text>
+  <rect x="50" y="{activity_y + 25}" width="694" height="120" fill="none" stroke="#bdc3c7" stroke-width="1" stroke-dasharray="3,3"/>
+  
+  <!-- Footer area -->
+  <rect x="30" y="{svg_height - 53}" width="734" height="25" fill="#f8f9fa"/>
+  <text x="397" y="{svg_height - 38}" class="small" text-anchor="middle">Page 1</text>
+</svg>'''
+    
+    return svg_content
+
+def generate_layout2_template(num_questions: int, subject: str, grade_level: str, topic: str) -> str:
+    """
+    Generate Layout 2 template with dynamic number of questions (Reading comprehension style).
+    """
+    
+    # Base height calculations
+    header_height = 90
+    reading_section_height = 180
+    instructions_height = 40
+    question_height = 45  # Height per Q&A pair
+    extra_space_height = 120
+    footer_height = 30
+    padding = 30
+    
+    # Calculate total height needed
+    total_content_height = (header_height + reading_section_height + instructions_height +
+                           (num_questions * question_height) + extra_space_height + footer_height)
+    
+    # Ensure minimum A4 height
+    svg_height = max(1123, total_content_height + (2 * padding))
+    
+    # Generate questions dynamically
+    questions_svg = ""
+    current_y = header_height + reading_section_height + instructions_height
+    
+    for i in range(1, num_questions + 1):
+        question_y = current_y + ((i - 1) * question_height) + 25
+        answer_y = question_y + 15
+        line_y = answer_y
+        
+        questions_svg += f'''
+  <text x="50" y="{question_y}" class="question">Q{i}. [question{i}]</text>
+  <text x="50" y="{answer_y}" class="question">Ans: _______________</text>
+  <line x1="85" y1="{line_y}" x2="744" y2="{line_y}" class="answer-line"/>
+'''
+    
+    # Extra space Y position
+    extra_space_y = current_y + (num_questions * question_height) + 40
+    
+    # Generate the complete SVG
+    svg_content = f'''<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="794" height="{svg_height}" viewBox="0 0 794 {svg_height}">
+  <defs>
+    <style>
+      .title {{ font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: #2c3e50; }}
+      .subtitle {{ font-family: Arial, sans-serif; font-size: 12px; fill: #34495e; }}
+      .small {{ font-family: Arial, sans-serif; font-size: 9px; fill: #2c3e50; }}
+      .instruction {{ font-family: Arial, sans-serif; font-size: 11px; fill: #2c3e50; font-weight: bold; }}
+      .question {{ font-family: Arial, sans-serif; font-size: 10px; fill: #2c3e50; }}
+      .passage {{ font-family: Arial, sans-serif; font-size: 10px; fill: #2c3e50; }}
+      .placeholder {{ font-family: Arial, sans-serif; font-size: 12px; fill: #7f8c8d; }}
+      .answer-line {{ stroke: #bdc3c7; stroke-width: 1; fill: none; }}
+    </style>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="794" height="{svg_height}" fill="#ffffff" stroke="none"/>
+  
+  <!-- Header -->
+  <rect x="30" y="30" width="734" height="35" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+  <text x="50" y="48" class="title">[subject] / Practice Comprehension / Grade [grade]</text>
+  <text x="50" y="58" class="small">Name: _______________</text>
+  <text x="500" y="58" class="small">Date: ______</text>
+  
+  <!-- Topic -->
+  <text x="397" y="85" class="instruction" text-anchor="middle">Topic - [topic]</text>
+  
+  <!-- Reading passage area -->
+  <text x="50" y="110" class="instruction">Read:</text>
+  <rect x="50" y="120" width="480" height="180" fill="#f8f9fa" stroke="#dee2e6" stroke-width="1"/>
+  <foreignObject x="60" y="130" width="460" height="160">
+    <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: Arial, sans-serif; font-size: 10px; color: #2c3e50; line-height: 1.3; word-wrap: break-word; margin: 0; padding: 5px;">
+      [READING_PASSAGE]
+    </div>
+  </foreignObject>
+  
+  <!-- Small image on right -->
+  <rect x="550" y="120" width="170" height="120" fill="#e8f4fd" stroke="#bdc3c7" stroke-width="2" stroke-dasharray="3,3" id="placeholder_image"/>
+  
+  <!-- Instructions for questions with proper text wrapping -->
+  <foreignObject x="50" y="320" width="694" height="40">
+    <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: Arial, sans-serif; font-size: 11px; color: #2c3e50; font-weight: bold; line-height: 1.4; word-wrap: break-word; margin: 0; padding: 5px 0;">
+      [instructions]
+    </div>
+  </foreignObject>
+  
+  <!-- Q&A Section with better spacing -->
+{questions_svg}
+  
+  <!-- Extra space for more content if needed -->
+  <rect x="50" y="{extra_space_y}" width="694" height="120" fill="none" stroke="#bdc3c7" stroke-width="1" stroke-dasharray="3,3"/>
+  <text x="60" y="{extra_space_y + 15}" class="small">Extra space for additional work:</text>
+  
+  <!-- Footer area -->
+  <rect x="30" y="{svg_height - 53}" width="734" height="25" fill="#f8f9fa"/>
+  <text x="397" y="{svg_height - 38}" class="small" text-anchor="middle">Page 1</text>
+</svg>'''
+    
+    return svg_content
+
+def generate_layout3_template(num_questions: int, subject: str, grade_level: str, topic: str) -> str:
+    """
+    Generate Layout 3 template with dynamic number of questions (Multiple choice style).
+    """
+    
+    # Base height calculations
+    header_height = 120
+    image_height = 220
+    question_height = 90  # Height per multiple choice question (with 4 options)
+    extra_space_height = 100
+    footer_height = 30
+    padding = 50
+    
+    # Calculate total height needed
+    total_content_height = (header_height + image_height +
+                           (num_questions * question_height) + extra_space_height + footer_height)
+    
+    # Ensure minimum A4 height
+    svg_height = max(1123, total_content_height + (2 * padding))
+    
+    # Generate questions dynamically
+    questions_svg = ""
+    
+    # First questions go on the right side of the image
+    right_side_questions = min(3, num_questions)  # Max 3 questions on the right
+    for i in range(1, right_side_questions + 1):
+        question_y = 170 + ((i - 1) * 75)
+        
+        questions_svg += f'''
+  <text x="390" y="{question_y}" class="question">{i}. [question{i}]</text>
+  <circle cx="400" cy="{question_y + 12}" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
+  <text x="408" y="{question_y + 16}" class="option">A) [OPTION_A]</text>
+  <circle cx="400" cy="{question_y + 25}" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
+  <text x="408" y="{question_y + 29}" class="option">B) [OPTION_B]</text>
+  <circle cx="400" cy="{question_y + 38}" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
+  <text x="408" y="{question_y + 42}" class="option">C) [OPTION_C]</text>
+  <circle cx="400" cy="{question_y + 51}" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
+  <text x="408" y="{question_y + 55}" class="option">D) [OPTION_D]</text>
+'''
+    
+    # Additional questions go below the image
+    if num_questions > 3:
+        below_image_y = 420
+        for i in range(4, num_questions + 1):
+            question_y = below_image_y + ((i - 4) * 40)
+            
+            questions_svg += f'''
+  <text x="50" y="{question_y}" class="question">{i}. [question{i}]</text>
+  <circle cx="60" cy="{question_y + 12}" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
+  <text x="68" y="{question_y + 16}" class="option">A) [OPTION_A]</text>
+  <circle cx="180" cy="{question_y + 12}" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
+  <text x="188" y="{question_y + 16}" class="option">B) [OPTION_B]</text>
+  <circle cx="300" cy="{question_y + 12}" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
+  <text x="308" y="{question_y + 16}" class="option">C) [OPTION_C]</text>
+  <circle cx="420" cy="{question_y + 12}" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
+  <text x="428" y="{question_y + 16}" class="option">D) [OPTION_D]</text>
+'''
+    
+    # Extra space Y position
+    extra_space_y = max(500, 420 + (max(0, num_questions - 3) * 40) + 40)
+    
+    # Generate the complete SVG
+    svg_content = f'''<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="794" height="{svg_height}" viewBox="0 0 794 {svg_height}">
+  <defs>
+    <style>
+      .title {{ font-family: Arial, sans-serif; font-size: 20px; font-weight: bold; fill: #2c3e50; text-anchor: middle; }}
+      .subtitle {{ font-family: Arial, sans-serif; font-size: 14px; fill: #34495e; text-anchor: middle; }}
+      .small {{ font-family: Arial, sans-serif; font-size: 10px; fill: #2c3e50; }}
+      .instruction {{ font-family: Arial, sans-serif; font-size: 12px; fill: #2c3e50; font-weight: bold; }}
+      .question {{ font-family: Arial, sans-serif; font-size: 11px; fill: #2c3e50; }}
+      .option {{ font-family: Arial, sans-serif; font-size: 10px; fill: #2c3e50; }}
+      .placeholder {{ font-family: Arial, sans-serif; font-size: 12px; fill: #7f8c8d; }}
+    </style>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="794" height="{svg_height}" fill="#ffffff" stroke="none"/>
+  
+  <!-- Header with name/date -->
+  <text x="50" y="50" class="small">Name: ________________</text>
+  <text x="550" y="50" class="small">Date: ________________</text>
+  
+  <!-- Title section -->
+  <text x="397" y="80" class="title">[subject]</text>
+  <text x="397" y="100" class="subtitle">[topic]</text>
+  
+  <!-- Instructions with proper text wrapping -->
+  <foreignObject x="50" y="120" width="694" height="35">
+    <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: Arial, sans-serif; font-size: 12px; color: #2c3e50; font-weight: bold; line-height: 1.4; word-wrap: break-word; text-align: center; margin: 0; padding: 5px 0;">
+      [instructions]
+    </div>
+  </foreignObject>
+  
+  <!-- Image positioned center-left -->
+  <rect x="50" y="170" width="320" height="220" fill="#e8f4fd" stroke="#bdc3c7" stroke-width="2" stroke-dasharray="5,5" id="placeholder_image"/>
+  
+  <!-- Multiple choice questions -->
+{questions_svg}
+  
+  <!-- Extra space for additional work -->
+  <rect x="50" y="{extra_space_y}" width="694" height="100" fill="none" stroke="#bdc3c7" stroke-width="1" stroke-dasharray="3,3"/>
+  <text x="60" y="{extra_space_y + 15}" class="small">Extra space for work/explanations:</text>
+  
+  <!-- Footer area -->
+  <rect x="30" y="{svg_height - 53}" width="734" height="25" fill="#f8f9fa"/>
+  <text x="397" y="{svg_height - 38}" class="small" text-anchor="middle">Page 1</text>
+</svg>'''
+    
+    return svg_content
+
+def generate_dynamic_math_template(num_questions: int, subject: str, grade_level: str, topic: str) -> str:
+    """
+    Generate a dynamic math worksheet template.
+    """
+    
+    # Base height calculations
+    header_height = 80
+    instructions_height = 30
+    image_height = 150
+    problem_height = 40  # Height per math problem
+    work_area_height = 120
+    footer_height = 60
+    padding = 40
+    
+    # Calculate total height needed
+    total_content_height = (header_height + instructions_height + image_height +
+                           (num_questions * problem_height) + work_area_height + footer_height)
+    
+    # Ensure minimum height
+    svg_height = max(600, total_content_height + (2 * padding))
+    
+    # Generate problems dynamically
+    problems_svg = ""
+    current_y = header_height + instructions_height + image_height + 20
+    
+    # Split problems into two columns if there are many
+    problems_per_column = min(6, num_questions)
+    first_column_problems = min(problems_per_column, num_questions)
+    
+    for i in range(1, first_column_problems + 1):
+        problem_y = current_y + ((i - 1) * problem_height)
+        
+        problems_svg += f'''
+  <text x="50" y="{problem_y}" class="problem">{i}. [problem{i}]</text>
+  <rect x="350" y="{problem_y - 20}" width="100" height="30" class="answer-box"/>
+'''
+    
+    # Second column problems if needed
+    if num_questions > problems_per_column:
+        for i in range(problems_per_column + 1, num_questions + 1):
+            problem_y = current_y + ((i - problems_per_column - 1) * problem_height)
+            
+            problems_svg += f'''
+  <text x="500" y="{problem_y}" class="problem">{i}. [problem{i}]</text>
+  <rect x="700" y="{problem_y - 20}" width="80" height="30" class="answer-box"/>
+'''
+    
+    # Work area Y position
+    work_area_y = current_y + (max(first_column_problems, num_questions - problems_per_column) * problem_height) + 20
+    
+    svg_content = f'''<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="{svg_height}" viewBox="0 0 800 {svg_height}">
+  <defs>
+    <style>
+      .title {{ font-family: Arial, sans-serif; font-size: 24px; font-weight: bold; fill: #2c3e50; }}
+      .subtitle {{ font-family: Arial, sans-serif; font-size: 16px; fill: #34495e; }}
+      .problem {{ font-family: Arial, sans-serif; font-size: 18px; fill: #2c3e50; font-weight: bold; }}
+      .instruction {{ font-family: Arial, sans-serif; font-size: 14px; fill: #7f8c8d; }}
+      .answer-box {{ fill: #ffffff; stroke: #3498db; stroke-width: 2; }}
+    </style>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="800" height="{svg_height}" fill="#ffffff" stroke="#ecf0f1" stroke-width="2"/>
+  
+  <!-- Header -->
+  <rect x="20" y="20" width="760" height="60" fill="#f39c12" opacity="0.1"/>
+  <text x="40" y="45" class="title">[topic] - Math Practice</text>
+  <text x="40" y="65" class="subtitle">[subject] - Grade [grade]</text>
+  
+  <!-- Instructions -->
+  <text x="50" y="110" class="instruction">[instructions]</text>
+  
+  <!-- Visual aid -->
+  <rect x="50" y="130" width="200" height="150" fill="#ecf0f1" stroke="#bdc3c7" stroke-width="2" stroke-dasharray="5,5" id="placeholder_image"/>
+  
+  <!-- Math Problems -->
+{problems_svg}
+  
+  <!-- Show your work section -->
+  <text x="50" y="{work_area_y}" class="subtitle">Show your work:</text>
+  <rect x="50" y="{work_area_y + 10}" width="700" height="120" fill="#ffffff" stroke="#bdc3c7" stroke-width="1"/>
+  
+  <!-- Footer -->
+  <rect x="20" y="{svg_height - 80}" width="760" height="60" fill="#95a5a6" opacity="0.1"/>
+  <text x="40" y="{svg_height - 55}" class="subtitle">Name: ________________________</text>
+  <text x="400" y="{svg_height - 55}" class="subtitle">Date: ________________________</text>
+</svg>'''
+    
+    return svg_content
+
+def generate_dynamic_comic_template(num_questions: int, subject: str, grade_level: str, topic: str) -> str:
+    """
+    Generate a dynamic comic template (placeholder implementation).
+    """
+    # This is a basic implementation - you can enhance this based on your needs
+    return generate_layout1_template(num_questions, subject, grade_level, topic)
+
+def generate_dynamic_worksheet_template(num_questions: int, subject: str, grade_level: str, topic: str) -> str:
+    """
+    Generate a dynamic worksheet template (placeholder implementation).
+    """
+    # This is a basic implementation - you can enhance this based on your needs
+    return generate_layout1_template(num_questions, subject, grade_level, topic)
+
 def analyze_lesson_plan_with_ai(lesson_plan: str, max_images: int = 5) -> List[ImagePrompt]:
     """
     Use AI to analyze a lesson plan and generate appropriate image prompts.
@@ -1316,7 +1756,7 @@ def validate_svg_request(request: SVGGenerationRequest):
 
 @app.post("/api/generate-svg", response_model=SVGGenerationResponse)
 async def generate_svg(request: SVGGenerationRequest):
-    """Generate SVG with text placeholders and embedded images."""
+    """Generate SVG with dynamic templates based on question count."""
     try:
         async with image_generation_semaphore:
             logger.info(f"Generating SVG for content type: {request.content_type}")
@@ -1324,28 +1764,15 @@ async def generate_svg(request: SVGGenerationRequest):
             # Validate request for K-6 education requirements
             validate_svg_request(request)
             
-            # Select template based on content type and layout style
-            if request.content_type == "image_comprehension":
-                template_id = f"{request.content_type}_{request.layout_style}"
-            else:
-                template_id = request.content_type
-
-            if not os.path.exists(os.path.join(SVG_TEMPLATES_DIR, f"{template_id}.svg")):
-                 raise HTTPException(status_code=400, detail=f"Template not found for content type '{request.content_type}' and layout '{request.layout_style}'")
-
-            # Validate image count
-            content_type_metadata = svg_service.template_metadata.get(request.content_type)
-            if content_type_metadata:
-                min_images = content_type_metadata.get("minImages", 1)
-                max_images = content_type_metadata.get("maxImages", 10)
-                if not (min_images <= request.image_count <= max_images):
-                    raise HTTPException(
-                        status_code=400,
-                        detail=f"Invalid image count for {request.content_type}. Must be between {min_images} and {max_images}."
-                    )
-            
-            # Load SVG template
-            svg_content = svg_service.load_template(template_id)
+            # Generate dynamic SVG template instead of loading static one
+            svg_content = generate_dynamic_svg_template(
+                request.content_type,
+                request.layout_style or "layout1",
+                request.num_questions,
+                request.subject,
+                request.grade_level,
+                request.topic
+            )
             
             # Use AI to analyze the prompt and generate content
             generated_images = []
@@ -1395,7 +1822,6 @@ async def generate_svg(request: SVGGenerationRequest):
                     # Continue without image
 
                 # Step 2: Handle backward compatibility for question types
-                # If frontend sends single question_type, use it; otherwise use question_types list
                 if request.question_type:
                     question_types_to_use = [request.question_type]
                 else:
@@ -1403,6 +1829,7 @@ async def generate_svg(request: SVGGenerationRequest):
                 
                 question_types_str = ", ".join(question_types_to_use)
                 
+                # Modified analysis prompt to handle dynamic question count
                 analysis_prompt = f"""
                 Create educational content for an image comprehension worksheet about {request.topic} in {request.subject} for {request.grade_level} students.
 
@@ -1416,8 +1843,7 @@ async def generate_svg(request: SVGGenerationRequest):
                 - Question 1: Basic observation/identification
                 - Question 2: Details or specific elements
                 - Question 3: Analysis or interpretation
-                - Question 4: Application or connection to learning
-                - Question 5: Creative or critical thinking (if 5 questions requested)
+                - Additional questions (if any): Application, connection to learning, creative/critical thinking
 
                 Additional requirements:
                 - If "fill_blank" is requested, include fill-in-the-blank style questions
@@ -1432,6 +1858,7 @@ async def generate_svg(request: SVGGenerationRequest):
 
                 Return as JSON with fields: "instructions" and "questions" (array of strings).
                 Make each question unique, educational, and appropriate for {request.grade_level}.
+                Ensure you generate exactly {request.num_questions} questions - no more, no less.
                 """
                 
                 system_message = f"You are an expert educational content creator specializing in {request.subject} for {request.grade_level}. Generate age-appropriate worksheet content as valid JSON only."
@@ -1445,7 +1872,10 @@ async def generate_svg(request: SVGGenerationRequest):
                     f"Describe two important details about {request.topic} shown in the picture.",
                     f"How does this image help explain {request.topic}?",
                     f"What can you learn about {request.topic} from this picture?",
-                    f"How would you use this information about {request.topic} in real life?"
+                    f"How would you use this information about {request.topic} in real life?",
+                    f"Compare what you see to something you already know about {request.topic}.",
+                    f"What questions would you ask about {request.topic} based on this image?",
+                    f"Draw a conclusion about {request.topic} from what you observe."
                 ]
                 
                 if response:
@@ -1459,18 +1889,15 @@ async def generate_svg(request: SVGGenerationRequest):
                         text_replacements["instructions"] = content_data.get("instructions", text_replacements["instructions"])
                         ai_generated_placeholders.append("instructions")
                         
-                        # Set individual questions (respect the exact number requested)
+                        # Set individual questions for the exact number requested
                         questions = content_data.get("questions", default_questions)
                         for i in range(request.num_questions):
                             if i < len(questions):
                                 text_replacements[f"question{i+1}"] = questions[i]
                             else:
-                                text_replacements[f"question{i+1}"] = default_questions[i] if i < len(default_questions) else f"Question {i+1} about {request.topic}."
+                                # Fall back to default questions if AI didn't generate enough
+                                text_replacements[f"question{i+1}"] = default_questions[i % len(default_questions)]
                             ai_generated_placeholders.append(f"question{i+1}")
-                        
-                        # Clear unused question placeholders (question4, question5, etc.)
-                        for i in range(request.num_questions + 1, 6):  # Always clear up to question5
-                            text_replacements[f"question{i}"] = ""
 
                     except Exception as e:
                         logger.error(f"Error parsing AI content response: {e}")
@@ -1478,12 +1905,56 @@ async def generate_svg(request: SVGGenerationRequest):
                         text_replacements["instructions"] = f"Look at the image and answer the questions about {request.topic}."
                         ai_generated_placeholders.append("instructions")
                         for i in range(request.num_questions):
-                            text_replacements[f"question{i+1}"] = default_questions[i] if i < len(default_questions) else f"Question {i+1} about {request.topic}."
+                            text_replacements[f"question{i+1}"] = default_questions[i % len(default_questions)]
                             ai_generated_placeholders.append(f"question{i+1}")
+
+            elif request.content_type == "math":
+                # Generate math problems dynamically
+                math_prompt = f"""
+                Create {request.num_questions} math problems about {request.topic} for {request.grade_level} students.
+                
+                REQUIREMENTS:
+                - Generate exactly {request.num_questions} problems
+                - Make problems appropriate for {request.grade_level} level
+                - Focus on {request.topic}
+                - Include variety in problem types
+                - Provide clear, age-appropriate instructions
+                
+                Return as JSON with fields: "instructions" and "problems" (array of strings).
+                """
+                
+                system_message = f"You are an expert math educator specializing in {request.grade_level} mathematics. Generate problems as valid JSON only."
+                
+                response = ai_service.query_model(math_prompt, system_message)
+                
+                # Default math content
+                text_replacements["instructions"] = f"Solve these {request.topic} problems. Show your work."
+                default_problems = [f"Problem {i+1} about {request.topic}" for i in range(request.num_questions)]
+                
+                if response:
+                    try:
+                        if "```json" in response:
+                            response = re.search(r'```json\s*([\s\S]*?)\s*```', response).group(1)
                         
-                        # Clear unused question placeholders
-                        for i in range(request.num_questions + 1, 6):  # Always clear up to question5
-                            text_replacements[f"question{i}"] = ""
+                        content_data = json.loads(response.strip())
+                        text_replacements["instructions"] = content_data.get("instructions", text_replacements["instructions"])
+                        ai_generated_placeholders.append("instructions")
+                        
+                        problems = content_data.get("problems", default_problems)
+                        for i in range(request.num_questions):
+                            if i < len(problems):
+                                text_replacements[f"problem{i+1}"] = problems[i]
+                            else:
+                                text_replacements[f"problem{i+1}"] = default_problems[i % len(default_problems)]
+                            ai_generated_placeholders.append(f"problem{i+1}")
+                            
+                    except Exception as e:
+                        logger.error(f"Error parsing math content: {e}")
+                        text_replacements["instructions"] = f"Solve these {request.topic} problems. Show your work."
+                        ai_generated_placeholders.append("instructions")
+                        for i in range(request.num_questions):
+                            text_replacements[f"problem{i+1}"] = default_problems[i % len(default_problems)]
+                            ai_generated_placeholders.append(f"problem{i+1}")
 
             # Step 3: Embed images into SVG
             if generated_images:
@@ -1497,10 +1968,7 @@ async def generate_svg(request: SVGGenerationRequest):
             # Step 4: Replace text placeholders
             svg_content = svg_service.replace_text_placeholders(svg_content, text_replacements)
             
-            # Extract only AI-generated placeholders for editing
-            editable_placeholders = ai_generated_placeholders
-            
-            logger.info(f"Generated SVG with {len(generated_images)} images and {len(editable_placeholders)} editable placeholders")
+            logger.info(f"Generated dynamic SVG with {len(generated_images)} images and {len(ai_generated_placeholders)} editable placeholders")
             
             # Save the generated SVG to a file
             svg_id = str(uuid.uuid4())
@@ -1515,7 +1983,7 @@ async def generate_svg(request: SVGGenerationRequest):
                 "id": svg_id,
                 "filename": svg_filename,
                 "url": f"/exports/{svg_filename}",
-                "template_id": template_id,
+                "template_id": f"{request.content_type}_{request.layout_style or 'layout1'}",
                 "created_at": datetime.now().isoformat(),
             }
             svg_metadata.append(new_svg_item)
@@ -1523,8 +1991,8 @@ async def generate_svg(request: SVGGenerationRequest):
             
             return SVGGenerationResponse(
                 svg_content=svg_content,
-                template_id=template_id,
-                placeholders=editable_placeholders,  # Only return AI-generated ones
+                template_id=f"{request.content_type}_{request.layout_style or 'layout1'}",
+                placeholders=ai_generated_placeholders,  # Only return AI-generated ones
                 images_generated=generated_images
             )
             

@@ -1,3 +1,5 @@
+// Update your src/components/SVGWorkflow/SVGGenerator.tsx file
+
 import React, { useState } from 'react';
 import { useMutation, useQueryClient } from 'react-query';
 import { Button } from '../ui/Button';
@@ -17,7 +19,7 @@ export const SVGGenerator: React.FC = () => {
   const [layoutStyle, setLayoutStyle] = useState('layout1');
   const [numQuestions, setNumQuestions] = useState(5);
   const [questionTypes, setQuestionTypes] = useState(['fill_blank']);
-  const [imageFormat, setImageFormat] = useState('landscape'); // Changed from aspectRatio
+  const [imageFormat, setImageFormat] = useState('landscape');
   const [imageCount, setImageCount] = useState(3);
   const [customInstructions, setCustomInstructions] = useState('');
   const [generatedSVG, setGeneratedSVG] = useState<GenerateSVGResponse | null>(null);
@@ -79,10 +81,10 @@ export const SVGGenerator: React.FC = () => {
       topic,
       grade_level: gradeLevel,
       layout_style: layoutStyle,
-      num_questions: numQuestions, // Will be passed to AI
+      num_questions: numQuestions, // Will be used for dynamic template generation
       question_types: questionTypes, // Will be passed to AI
-      image_format: imageFormat, // Changed from aspect_ratio
-      image_aspect_ratio: imageAspectRatio, // New field for AI
+      image_format: imageFormat,
+      image_aspect_ratio: imageAspectRatio,
       image_count: imageCount,
       custom_instructions: customInstructions || undefined,
     };
@@ -134,6 +136,13 @@ export const SVGGenerator: React.FC = () => {
     { value: 'true_false', label: 'True/False' },
     { value: 'matching', label: 'Matching' }
   ];
+
+  // Get question limits - now standardized to 1-10 for all types
+  const getQuestionLimits = () => {
+    return { min: 1, max: 10 };
+  };
+
+  const questionLimits = getQuestionLimits();
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
@@ -201,6 +210,9 @@ export const SVGGenerator: React.FC = () => {
         <div className="space-y-6">
           <div>
             <h3 className="text-lg font-medium text-gray-900 mb-4">Configure Your K-6 Worksheet</h3>
+            
+
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-2">
@@ -269,11 +281,11 @@ export const SVGGenerator: React.FC = () => {
                 </select>
               </div>
 
-              <div className={`grid gap-4 ${selectedContentType === 'image_comprehension' ? 'grid-cols-1' : 'grid-cols-2'}`}>
-                <div>
-                  <label htmlFor="numQuestions" className="block text-sm font-medium text-gray-700 mb-2">
-                    Number of Questions *
-                  </label>
+              <div className="md:col-span-2">
+                <label htmlFor="numQuestions" className="block text-sm font-medium text-gray-700 mb-2">
+                  Number of Questions *
+                </label>
+                <div className="flex items-center gap-4">
                   <input
                     type="number"
                     id="numQuestions"
@@ -281,50 +293,80 @@ export const SVGGenerator: React.FC = () => {
                     onChange={(e) => {
                       const value = e.target.value;
                       if (value === '') {
-                        setNumQuestions(5); // Default value when cleared
+                        setNumQuestions(5); // Default to 5 when cleared
                       } else {
                         const parsed = parseInt(value);
-                        if (!isNaN(parsed) && parsed >= 3 && parsed <= 8) {
-                          setNumQuestions(parsed);
+                        if (!isNaN(parsed)) {
+                          // Allow typing any number, but clamp to valid range
+                          const clamped = Math.min(Math.max(parsed, questionLimits.min), questionLimits.max);
+                          setNumQuestions(clamped);
                         }
                       }
                     }}
-                    min="3"
-                    max="8"
+                    onBlur={(e) => {
+                      // Ensure valid range when user finishes typing
+                      const value = parseInt(e.target.value);
+                      if (isNaN(value) || value < questionLimits.min) {
+                        setNumQuestions(5); // Default to 5 for invalid values
+                      } else if (value > questionLimits.max) {
+                        setNumQuestions(questionLimits.max);
+                      }
+                    }}
+                    min={questionLimits.min}
+                    max={questionLimits.max}
+                    className="w-32 px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="1-10"
+                  />
+                  <div className="flex-1">
+                    <div className="bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                        style={{ 
+                          width: `${((numQuestions - questionLimits.min) / (questionLimits.max - questionLimits.min)) * 100}%` 
+                        }}
+                      ></div>
+                    </div>
+                    <div className="flex justify-between text-xs text-gray-500 mt-1">
+                      <span>1</span>
+                      <span className="font-medium text-blue-600">{numQuestions} questions</span>
+                      <span>10</span>
+                    </div>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  The template will be generated to fit exactly {numQuestions} questions with proper spacing and layout.
+                </p>
+              </div>
+              
+              {selectedContentType !== 'image_comprehension' && (
+                <div>
+                  <label htmlFor="imageCount" className="block text-sm font-medium text-gray-700 mb-2">
+                    Number of Images
+                  </label>
+                  <input
+                    type="number"
+                    id="imageCount"
+                    value={imageCount}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      const minImages = contentTypes.find((ct) => ct.id === selectedContentType)?.minImages ?? 1;
+                      const maxImages = contentTypes.find((ct) => ct.id === selectedContentType)?.maxImages ?? 10;
+                      
+                      if (value === '') {
+                        setImageCount(minImages);
+                      } else {
+                        const parsed = parseInt(value);
+                        if (!isNaN(parsed) && parsed >= minImages && parsed <= maxImages) {
+                          setImageCount(parsed);
+                        }
+                      }
+                    }}
+                    min={contentTypes.find((ct) => ct.id === selectedContentType)?.minImages ?? 1}
+                    max={contentTypes.find((ct) => ct.id === selectedContentType)?.maxImages ?? 10}
                     className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
-                
-                {selectedContentType !== 'image_comprehension' && (
-                  <div>
-                    <label htmlFor="imageCount" className="block text-sm font-medium text-gray-700 mb-2">
-                      Number of Images
-                    </label>
-                    <input
-                      type="number"
-                      id="imageCount"
-                      value={imageCount}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        const minImages = contentTypes.find((ct) => ct.id === selectedContentType)?.minImages ?? 1;
-                        const maxImages = contentTypes.find((ct) => ct.id === selectedContentType)?.maxImages ?? 10;
-                        
-                        if (value === '') {
-                          setImageCount(minImages); // Default to minimum when cleared
-                        } else {
-                          const parsed = parseInt(value);
-                          if (!isNaN(parsed) && parsed >= minImages && parsed <= maxImages) {
-                            setImageCount(parsed);
-                          }
-                        }
-                      }}
-                      min={contentTypes.find((ct) => ct.id === selectedContentType)?.minImages ?? 1}
-                      max={contentTypes.find((ct) => ct.id === selectedContentType)?.maxImages ?? 10}
-                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    />
-                  </div>
-                )}
-              </div>
+              )}
 
               <div>
                 <label htmlFor="questionTypes" className="block text-sm font-medium text-gray-700 mb-2">
@@ -409,12 +451,12 @@ export const SVGGenerator: React.FC = () => {
               {generateMutation.isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Generating K-6 Worksheet...
+                  Generating Worksheet ({numQuestions} questions)...
                 </>
               ) : (
                 <>
                   <Sparkles className="mr-2 h-4 w-4" />
-                  Generate K-6 Worksheet
+                  Generate K-6 Worksheet ({numQuestions} questions)
                 </>
               )}
             </Button>
