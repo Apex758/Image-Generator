@@ -1214,24 +1214,20 @@ def generate_layout1_template_with_wordbank(num_questions: int, subject: str, gr
     max_questions_on_page = max(1, int(available_height_for_questions // question_height))
     questions_on_page = min(num_questions, max_questions_on_page)
     
-    # FIXED: Generate questions placeholders for ALL requested questions
+    # FIXED: Generate ALL questions first, adjust other elements to fit
     questions_svg = ""
-    for i in range(1, num_questions + 1):  # Changed from questions_on_page + 1 to num_questions + 1
-        if i <= questions_on_page:
-            # Questions that fit on the page
-            question_y = questions_start_y + ((i - 1) * question_height)
-            questions_svg += f'''
+    for i in range(1, num_questions + 1):
+        question_y = questions_start_y + ((i - 1) * question_height)
+        questions_svg += f'''
   <foreignObject x="{margin + 20}" y="{question_y}" width="{content_width - 40}" height="{question_height - 5}">
     <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: Arial, sans-serif; font-size: 11px; color: #2c3e50; line-height: 1.4; word-wrap: break-word; margin: 0; padding: 2px 0;">
       {i}. [question{i}]
     </div>
   </foreignObject>
 '''
-        # Note: We still create placeholders for overflow questions, they just won't be visible in the template
-        # but the AI can still generate content for them and they'll be available in the text editor
     
-    # Calculate word bank position
-    word_bank_y = questions_start_y + (questions_on_page * question_height) + spacing
+    # Calculate word bank position - AFTER all questions
+    word_bank_y = questions_start_y + (num_questions * question_height) + spacing
     
     # Word bank section (only for fill-in-the-blank)
     word_bank_svg = ""
@@ -1252,10 +1248,10 @@ def generate_layout1_template_with_wordbank(num_questions: int, subject: str, gr
   <text x="{margin + 430}" y="{word_bank_y + 55}" class="small">[word_bank_word10]</text>
 '''
     
-    # Activity box position
+    # Activity box position - comes after word bank
     activity_y = word_bank_y + (word_bank_height + spacing if include_word_bank else 0)
     
-    # Activity box (only if enabled and fits on page)
+    # Activity box (only if enabled and fits on page, otherwise note for second page)
     activity_svg = ""
     if include_activity_box:
         activity_bottom = activity_y + activity_height
@@ -1268,21 +1264,15 @@ def generate_layout1_template_with_wordbank(num_questions: int, subject: str, gr
 '''
         else:
             activity_svg = f'''
-  <text x="{margin + 20}" y="{activity_y}" class="instruction">Activity: Continue on separate paper</text>
-'''
-    
-    # Add overflow notice if needed
-    overflow_notice = ""
-    if num_questions > questions_on_page:
-        remaining_questions = num_questions - questions_on_page
-        overflow_y = activity_y + (activity_height if include_activity_box and activity_svg else 0) + spacing
-        overflow_notice = f'''
-  <!-- Overflow Notice -->
-  <rect x="{margin + 20}" y="{overflow_y}" width="{content_width - 40}" height="30" fill="#fff3cd" stroke="#ffeaa7" stroke-width="1"/>
-  <text x="{margin + 30}" y="{overflow_y + 20}" class="instruction" fill="#856404">
-    Continue with questions {questions_on_page + 1}-{num_questions} on a separate sheet
+  <!-- Activity Notice -->
+  <rect x="{margin + 20}" y="{activity_y}" width="{content_width - 40}" height="30" fill="#e1f5fe" stroke="#81d4fa" stroke-width="1"/>
+  <text x="{margin + 30}" y="{activity_y + 20}" class="instruction" fill="#0277bd">
+    Activity box continues on page 2 due to space
   </text>
 '''
+    
+    # Remove overflow notice since we now show all questions
+    overflow_notice = ""
     
     # Generate the complete SVG
     svg_content = f'''<?xml version="1.0" encoding="UTF-8"?>
@@ -1326,8 +1316,6 @@ def generate_layout1_template_with_wordbank(num_questions: int, subject: str, gr
 {word_bank_svg}
   
 {activity_svg}
-  
-{overflow_notice}
   
   <!-- Footer -->
   <rect x="{margin}" y="{svg_height - margin - footer_height}" width="{content_width}" height="{footer_height}" fill="#f8f9fa"/>
