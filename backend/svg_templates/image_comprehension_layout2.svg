@@ -1,60 +1,76 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1000" viewBox="0 0 800 1000">
+<svg xmlns="http://www.w3.org/2000/svg" width="794" height="1123" viewBox="0 0 794 1123">
   <defs>
     <style>
-      .title { font-family: Arial, sans-serif; font-size: 18px; font-weight: bold; fill: #2c3e50; }
-      .subtitle { font-family: Arial, sans-serif; font-size: 14px; fill: #34495e; }
-      .small { font-family: Arial, sans-serif; font-size: 11px; fill: #2c3e50; }
-      .instruction { font-family: Arial, sans-serif; font-size: 13px; fill: #2c3e50; font-weight: bold; }
-      .question { font-family: Arial, sans-serif; font-size: 12px; fill: #2c3e50; }
-      .passage { font-family: Arial, sans-serif; font-size: 12px; fill: #2c3e50; }
-      .placeholder { font-family: Arial, sans-serif; font-size: 14px; fill: #7f8c8d; }
+      .title { font-family: Arial, sans-serif; font-size: 16px; font-weight: bold; fill: #2c3e50; }
+      .subtitle { font-family: Arial, sans-serif; font-size: 12px; fill: #34495e; }
+      .small { font-family: Arial, sans-serif; font-size: 9px; fill: #2c3e50; }
+      .instruction { font-family: Arial, sans-serif; font-size: 11px; fill: #2c3e50; font-weight: bold; }
+      .question { font-family: Arial, sans-serif; font-size: 10px; fill: #2c3e50; }
+      .passage { font-family: Arial, sans-serif; font-size: 10px; fill: #2c3e50; }
+      .placeholder { font-family: Arial, sans-serif; font-size: 12px; fill: #7f8c8d; }
       .answer-line { stroke: #bdc3c7; stroke-width: 1; fill: none; }
     </style>
   </defs>
   
   <!-- Background -->
-  <rect width="800" height="1000" fill="#ffffff" stroke="#ecf0f1" stroke-width="2"/>
+  <rect width="794" height="1123" fill="#ffffff" stroke="none"/>
   
   <!-- Header -->
-  <rect x="10" y="10" width="780" height="40" fill="#ffffff" stroke="#000000" stroke-width="1"/>
-  <text x="50" y="25" class="title" id="placeholder_subject">[SUBJECT]/ Practice Comprehension/ Grade [GRADE]</text>
-  <text x="50" y="35" class="small" id="placeholder_name">Name: _______________</text>
-  <text x="500" y="35" class="small" id="placeholder_date">Date: ______</text>
+  <rect x="30" y="30" width="734" height="35" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+  <text x="50" y="48" class="title">[subject] / Practice Comprehension / Grade [grade]</text>
+  <text x="50" y="58" class="small">Name: _______________</text>
+  <text x="500" y="58" class="small">Date: ______</text>
   
   <!-- Topic -->
-  <text x="400" y="70" class="instruction" text-anchor="middle" id="placeholder_topic">Topic - [TOPIC]</text>
+  <text x="397" y="85" class="instruction" text-anchor="middle">Topic - [topic]</text>
   
-  <!-- Reading passage area (like second sample) -->
-  <text x="50" y="100" class="instruction">Read:</text>
-  <rect x="50" y="110" width="500" height="200" fill="#f8f9fa" stroke="#dee2e6" stroke-width="1"/>
-  <text x="60" y="130" class="passage" id="placeholder_passage">[READING_PASSAGE]</text>
+  <!-- Reading passage area -->
+  <text x="50" y="110" class="instruction">Read:</text>
+  <rect x="50" y="120" width="480" height="180" fill="#f8f9fa" stroke="#dee2e6" stroke-width="1"/>
+  <foreignObject x="60" y="130" width="460" height="160">
+    <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: Arial, sans-serif; font-size: 10px; color: #2c3e50; line-height: 1.3; word-wrap: break-word; margin: 0; padding: 5px;">
+      [READING_PASSAGE]
+    </div>
+  </foreignObject>
   
-  <!-- Small image on right (like second sample) -->
-  <rect x="570" y="110" width="180" height="130" fill="#e8f4fd" stroke="#bdc3c7" stroke-width="2" stroke-dasharray="3,3"/>
-  <text x="660" y="175" text-anchor="middle" class="placeholder" id="placeholder_image">[IMAGE HERE]</text>
+  <!-- Small image on right -->
+  <rect x="550" y="120" width="170" height="120" fill="#e8f4fd" stroke="#bdc3c7" stroke-width="2" stroke-dasharray="3,3" id="placeholder_image"/>
+  <!-- <text x="397" y="260" text-anchor="middle" class="placeholder">Image will appear here</text> -->
   
-  <!-- Instructions for questions -->
-  <text x="50" y="340" class="instruction" id="placeholder_instructions">[QUESTION_INSTRUCTIONS]</text>
+  <!-- Instructions for questions with proper text wrapping -->
+  <foreignObject x="50" y="320" width="694" height="40">
+    <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: Arial, sans-serif; font-size: 11px; color: #2c3e50; font-weight: bold; line-height: 1.4; word-wrap: break-word; margin: 0; padding: 5px 0;">
+      [instructions]
+    </div>
+  </foreignObject>
   
-  <!-- Q&A Section with answer lines -->
-  <text x="50" y="380" class="question" id="placeholder_question1">Q1. [QUESTION_1]</text>
-  <text x="50" y="395" class="question">Ans: _______________</text>
-  <line x1="85" y1="395" x2="750" y2="395" class="answer-line"/>
+  <!-- Q&A Section with better spacing -->
+  <text x="50" y="385" class="question">Q1. [question1]</text>
+  <text x="50" y="400" class="question">Ans: _______________</text>
+  <line x1="85" y1="400" x2="744" y2="400" class="answer-line"/>
   
-  <text x="50" y="430" class="question" id="placeholder_question2">Q2. [QUESTION_2]</text>
+  <text x="50" y="430" class="question">Q2. [question2]</text>
   <text x="50" y="445" class="question">Ans: _______________</text>
-  <line x1="85" y1="445" x2="750" y2="445" class="answer-line"/>
+  <line x1="85" y1="445" x2="744" y2="445" class="answer-line"/>
   
-  <text x="50" y="480" class="question" id="placeholder_question3">Q3. [QUESTION_3]</text>
-  <text x="50" y="495" class="question">Ans: _______________</text>
-  <line x1="85" y1="495" x2="750" y2="495" class="answer-line"/>
+  <text x="50" y="475" class="question">Q3. [question3]</text>
+  <text x="50" y="490" class="question">Ans: _______________</text>
+  <line x1="85" y1="490" x2="744" y2="490" class="answer-line"/>
   
-  <text x="50" y="530" class="question" id="placeholder_question4">Q4. [QUESTION_4]</text>
-  <text x="50" y="545" class="question">Ans: _______________</text>
-  <line x1="85" y1="545" x2="750" y2="545" class="answer-line"/>
+  <text x="50" y="520" class="question">Q4. [question4]</text>
+  <text x="50" y="535" class="question">Ans: _______________</text>
+  <line x1="85" y1="535" x2="744" y2="535" class="answer-line"/>
   
-  <text x="50" y="580" class="question" id="placeholder_question5">Q5. [QUESTION_5]</text>
-  <text x="50" y="595" class="question">Ans: _______________</text>
-  <line x1="85" y1="595" x2="750" y2="595" class="answer-line"/>
+  <text x="50" y="565" class="question">Q5. [question5]</text>
+  <text x="50" y="580" class="question">Ans: _______________</text>
+  <line x1="85" y1="580" x2="744" y2="580" class="answer-line"/>
+  
+  <!-- Extra space for more content if needed -->
+  <rect x="50" y="620" width="694" height="120" fill="none" stroke="#bdc3c7" stroke-width="1" stroke-dasharray="3,3"/>
+  <text x="60" y="635" class="small">Extra space for additional work:</text>
+  
+  <!-- Footer area -->
+  <rect x="30" y="1070" width="734" height="25" fill="#f8f9fa"/>
+  <text x="397" y="1085" class="small" text-anchor="middle">Page 1</text>
 </svg>

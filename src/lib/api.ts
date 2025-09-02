@@ -59,14 +59,15 @@ export interface SVGTemplate {
 
 export interface GenerateSVGRequest {
   content_type: 'image_comprehension' | 'comic' | 'math' | 'worksheet';
-  subject: string;
-  topic: string;  // Added - required by backend
-  grade_level: string;
-  layout_style?: string;  // Added - backend expects this (layout1, layout2, layout3)
-  num_questions?: number;  // Added - backend expects this
-  question_types?: string[];  // Added - backend expects this
+  subject: string; // Must be one of: Mathematics, Language Arts, Science, Social Studies
+  topic: string;
+  grade_level: string; // Must be one of: Kindergarten, Grade 1-6
+  layout_style?: string; // layout1, layout2, layout3
+  num_questions?: number; // Will be passed to AI
+  question_types?: string[]; // Will be passed to AI
+  image_format?: string; // landscape, square, portrait, wide
+  image_aspect_ratio?: { width: number; height: number }; // For AI image generation
   image_count?: number;
-  aspect_ratio?: string;
   custom_instructions?: string;
 }
 

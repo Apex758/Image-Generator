@@ -156,19 +156,6 @@
     "generation_method": "hf_api"
   },
   {
-    "id": "0ffd94a3-184b-4e68-b488-35d9122c661f",
-    "filename": "0ffd94a3-184b-4e68-b488-35d9122c661f.png",
-    "url": "/static/0ffd94a3-184b-4e68-b488-35d9122c661f.png",
-    "prompt": "Design an infographic showing the light-dependent reactions, including the absorption of light by pigments, the transfer of electrons, and the production of ATP and NADPH. Use arrows to represent energy transfer and include simple representations of the molecules involved.",
-    "created_at": "2025-09-01T04:23:52.091216",
-    "width": 1024,
-    "height": 1024,
-    "seed": null,
-    "guidance_scale": 3.5,
-    "num_inference_steps": 50,
-    "generation_method": "hf_api"
-  },
-  {
     "id": "1443363f-80ac-461f-9c93-c5140954687c",
     "filename": "1443363f-80ac-461f-9c93-c5140954687c.png",
     "url": "/static/1443363f-80ac-461f-9c93-c5140954687c.png",

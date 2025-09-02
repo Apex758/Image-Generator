@@ -342,16 +342,15 @@ class LessonPlanAnalysisResponse(BaseModel):
 class SVGGenerationRequest(BaseModel):
     content_type: str
     subject: str
-    topic: str  # NEW
+    topic: str
     grade_level: str
-    layout_style: Optional[str] = "layout1"  # NEW: layout1, layout2, layout3
-    
-    # Question configuration - NEW
+    layout_style: Optional[str] = "layout1"
     num_questions: int = 5
-    question_types: List[str] = ["fill_blank", "short_answer", "multiple_choice"]  # NEW
-    
-    image_count: int = 1  # Fixed to 1 for image comprehension
-    aspect_ratio: str = "square"
+    question_types: Optional[List[str]] = ["fill_blank", "short_answer", "multiple_choice"]  # Keep as list for backward compatibility
+    question_type: Optional[str] = None  # New field for single question type from frontend
+    image_format: Optional[str] = "landscape"  # Changed from aspect_ratio
+    image_aspect_ratio: Optional[dict] = {"width": 16, "height": 9}  # New field for AI
+    image_count: int = 1
     custom_instructions: Optional[str] = None
 
 
@@ -829,16 +828,15 @@ class SVGService:
             
             # Replace bracket-style placeholders: [placeholder] -> replacement
             for placeholder, replacement in replacements.items():
-                if replacement:  # Only replace if replacement is not empty
-                    # Handle both [placeholder] and placeholder patterns
-                    patterns = [
-                        f'[{placeholder}]',
-                        f'{{{placeholder}}}',  # Also handle curly braces
-                        f'placeholder_{placeholder}',  # Handle ID-style placeholders
-                    ]
-                    
-                    for pattern in patterns:
-                        processed_content = processed_content.replace(pattern, replacement)
+                # Handle both [placeholder] and placeholder patterns
+                patterns = [
+                    f'[{placeholder}]',
+                    f'{{{placeholder}}}',  # Also handle curly braces
+                    f'placeholder_{placeholder}',  # Handle ID-style placeholders
+                ]
+                
+                for pattern in patterns:
+                    processed_content = processed_content.replace(pattern, replacement)
             
             logger.info(f"Text replacement completed for {len(replacements)} placeholders")
             return processed_content
@@ -846,12 +844,13 @@ class SVGService:
         except Exception as e:
             logger.error(f"Error replacing text placeholders: {e}")
             return svg_content
-    
+        
     async def embed_images_in_svg(self, svg_content: str, image_urls: List[str]) -> str:
         """Embed generated images into SVG placeholders."""
         try:
             root = ET.fromstring(svg_content)
             image_index = 0
+            elements_to_remove = []  # Track elements to remove
             
             # Look for image placeholder elements by ID
             for elem in root.iter():
@@ -865,11 +864,11 @@ class SVGService:
                         # Create image element to replace the placeholder
                         img_elem = ET.Element('image')
                         
-                        # For Layout 1, the image area is x="200" y="90" width="400" height="300"
-                        img_elem.set('x', '200')
-                        img_elem.set('y', '90')
-                        img_elem.set('width', '400')
-                        img_elem.set('height', '300')
+                        # Use the same position and size as the placeholder rect
+                        img_elem.set('x', elem.get('x', '200'))
+                        img_elem.set('y', elem.get('y', '90'))
+                        img_elem.set('width', elem.get('width', '400'))
+                        img_elem.set('height', elem.get('height', '300'))
                         img_elem.set('href', f'data:image/png;base64,{img_data}')
                         img_elem.set('preserveAspectRatio', 'xMidYMid meet')
                         
@@ -887,6 +886,22 @@ class SVGService:
                         
                         image_index += 1
                         logger.info(f"Embedded image {image_index}: {image_urls[image_index-1]}")
+                
+                # Also look for placeholder text elements and mark them for removal
+                elif (elem.tag == 'text' and 
+                    elem.text and 
+                    ('Image will appear here' in elem.text or 
+                    '[IMAGE HERE]' in elem.text or
+                    'image will appear here' in elem.text.lower())):
+                    elements_to_remove.append(elem)
+            
+            # Remove placeholder text elements
+            for elem in elements_to_remove:
+                parent = elem.getparent() if hasattr(elem, 'getparent') else None
+                if parent is not None:
+                    parent.remove(elem)
+                elif elem in root:
+                    root.remove(elem)
             
             return ET.tostring(root, encoding='unicode')
             
@@ -896,19 +911,19 @@ class SVGService:
             return svg_content
     
     def export_svg_to_pdf(self, svg_content: str, filename: str) -> str:
-        """Export SVG to PDF format."""
+        """Export SVG to PDF format with proper A4 sizing."""
         try:
             output_path = os.path.join(self.exports_dir, f"{filename}.pdf")
             
             # Clean SVG content for better compatibility
             clean_svg = self._clean_svg_for_export(svg_content)
             
-            # Use cairosvg to convert SVG to PDF
+            # Use cairosvg to convert SVG to PDF with A4 dimensions
             cairosvg.svg2pdf(
                 bytestring=clean_svg.encode('utf-8'),
                 write_to=output_path,
-                output_width=800,
-                output_height=1000
+                output_width=794,   # A4 width in pixels at 96 DPI
+                output_height=1123  # A4 height in pixels at 96 DPI
             )
             
             return output_path
@@ -917,20 +932,20 @@ class SVGService:
             raise HTTPException(status_code=500, detail=f"Error exporting to PDF: {str(e)}")
 
     def export_svg_to_png(self, svg_content: str, filename: str) -> str:
-        """Export SVG to PNG format."""
+        """Export SVG to PNG format with high quality A4 dimensions."""
         try:
             output_path = os.path.join(self.exports_dir, f"{filename}.png")
             
             # Clean SVG content for better compatibility
             clean_svg = self._clean_svg_for_export(svg_content)
             
-            # Use cairosvg to convert SVG to PNG
+            # Use cairosvg to convert SVG to PNG with high DPI for quality
             cairosvg.svg2png(
                 bytestring=clean_svg.encode('utf-8'),
                 write_to=output_path,
-                dpi=300,
-                output_width=2400,  # 800 * 3 for high quality
-                output_height=3000   # 1000 * 3 for high quality
+                dpi=300,  # High DPI for print quality
+                output_width=2384,   # A4 width at 300 DPI (794 * 3)
+                output_height=3369   # A4 height at 300 DPI (1123 * 3)
             )
             
             return output_path
@@ -939,27 +954,36 @@ class SVGService:
             raise HTTPException(status_code=500, detail=f"Error exporting to PNG: {str(e)}")
 
     def export_svg_to_docx(self, svg_content: str, filename: str) -> str:
-        """Export SVG to DOCX format."""
+        """Export SVG to DOCX format with proper A4 page setup."""
         try:
-            # First convert SVG to PNG in memory
+            # First convert SVG to PNG in memory with A4 dimensions
             clean_svg = self._clean_svg_for_export(svg_content)
             png_data = cairosvg.svg2png(
                 bytestring=clean_svg.encode('utf-8'),
                 dpi=300,
-                output_width=2400,
-                output_height=3000
+                output_width=2384,   # A4 width at 300 DPI
+                output_height=3369   # A4 height at 300 DPI
             )
             
-            # Create DOCX document
+            # Create DOCX document with A4 page setup
             doc = Document()
+            
+            # Set A4 page size and margins
+            section = doc.sections[0]
+            section.page_width = Inches(8.27)   # A4 width: 210mm
+            section.page_height = Inches(11.69)  # A4 height: 297mm
+            section.left_margin = Inches(0.5)
+            section.right_margin = Inches(0.5)
+            section.top_margin = Inches(0.5)
+            section.bottom_margin = Inches(0.5)
             
             # Add the image to document
             with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as temp_file:
                 temp_file.write(png_data)
                 temp_file.flush()
                 
-                # Add to document with appropriate size
-                doc.add_picture(temp_file.name, width=Inches(8.5))  # Letter size width
+                # Add to document with A4-appropriate size
+                doc.add_picture(temp_file.name, width=Inches(7.27))  # Width minus margins
                 
                 # Clean up temp file
                 os.unlink(temp_file.name)
@@ -973,7 +997,7 @@ class SVGService:
             raise HTTPException(status_code=500, detail=f"Error exporting to DOCX: {str(e)}")
 
     def _clean_svg_for_export(self, svg_content: str) -> str:
-        """Clean SVG content for better export compatibility."""
+        """Clean SVG content for better export compatibility with A4 format."""
         try:
             # Remove any XML declarations
             content = re.sub(r'<\?xml[^>]*\?>', '', svg_content)
@@ -986,9 +1010,31 @@ class SVGService:
             content = re.sub(r'ns\d+:', '', content)
             content = re.sub(r'xmlns:ns\d+="[^"]*"', '', content)
             
-            # Ensure viewBox exists
+            # Ensure proper A4 viewBox and dimensions
             if 'viewBox=' not in content:
-                content = content.replace('<svg', '<svg viewBox="0 0 800 1000"')
+                content = content.replace('<svg', '<svg viewBox="0 0 794 1123"')
+            
+            # Ensure width and height are set for A4
+            content = re.sub(r'width="[^"]*"', 'width="794"', content)
+            content = re.sub(r'height="[^"]*"', 'height="1123"', content)
+            
+            # Add CSS for page breaks when printed
+            css_styles = '''
+            <style>
+            @media print {
+                @page {
+                    size: A4;
+                    margin: 0.5in;
+                }
+                .page-break {
+                    page-break-before: always;
+                }
+            }
+            </style>
+            '''
+            
+            # Insert CSS after the opening svg tag
+            content = content.replace('<svg', css_styles + '<svg')
             
             return content.strip()
         except Exception as e:
@@ -1246,12 +1292,37 @@ async def get_svg_templates():
         logger.error(f"Error getting SVG templates: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get templates: {str(e)}")
 
+# Add validation function
+def validate_svg_request(request: SVGGenerationRequest):
+    """Validate SVG generation request for K-6 education requirements."""
+    
+    # Valid grades K-6
+    valid_grades = ['Kindergarten', 'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6']
+    if request.grade_level not in valid_grades:
+        raise HTTPException(status_code=400, detail=f"Grade level must be one of: {', '.join(valid_grades)}")
+    
+    # Valid subjects
+    valid_subjects = ['Mathematics', 'Language Arts', 'Science', 'Social Studies']
+    if request.subject not in valid_subjects:
+        raise HTTPException(status_code=400, detail=f"Subject must be one of: {', '.join(valid_subjects)}")
+    
+    # Valid question types
+    valid_question_types = ['fill_blank', 'short_answer', 'multiple_choice', 'true_false', 'matching']
+    invalid_types = [qt for qt in request.question_types if qt not in valid_question_types]
+    if invalid_types:
+        raise HTTPException(status_code=400, detail=f"Invalid question types: {', '.join(invalid_types)}")
+    
+    return True
+
 @app.post("/api/generate-svg", response_model=SVGGenerationResponse)
 async def generate_svg(request: SVGGenerationRequest):
     """Generate SVG with text placeholders and embedded images."""
     try:
         async with image_generation_semaphore:
             logger.info(f"Generating SVG for content type: {request.content_type}")
+            
+            # Validate request for K-6 education requirements
+            validate_svg_request(request)
             
             # Select template based on content type and layout style
             if request.content_type == "image_comprehension":
@@ -1289,14 +1360,23 @@ async def generate_svg(request: SVGGenerationRequest):
             ai_service = AIService()
 
             if request.content_type == "image_comprehension":
-                # Step 1: Generate the image first
-                image_prompt = f"Educational illustration showing {request.topic} for {request.subject} class, grade {request.grade_level}. Clear, colorful, educational style with no text or labels visible."
+                # Step 1: Generate the image first with proper aspect ratio
+                image_prompt = f"Educational illustration showing {request.topic} for {request.subject} class, {request.grade_level}. Clear, colorful, educational style with no text or labels visible."
                 
                 try:
-                    if request.aspect_ratio == "square": width, height = 512, 512
-                    elif request.aspect_ratio == "landscape": width, height = 768, 512
-                    elif request.aspect_ratio == "portrait": width, height = 512, 768
-                    else: width, height = 512, 512
+                    # Use image_aspect_ratio from request for AI image generation
+                    aspect_ratio = request.image_aspect_ratio or {"width": 16, "height": 9}
+                    
+                    # Calculate dimensions based on aspect ratio (keeping reasonable size)
+                    base_size = 512
+                    if aspect_ratio["width"] >= aspect_ratio["height"]:
+                        # Landscape or square
+                        width = base_size
+                        height = int(base_size * aspect_ratio["height"] / aspect_ratio["width"])
+                    else:
+                        # Portrait
+                        height = base_size
+                        width = int(base_size * aspect_ratio["width"] / aspect_ratio["height"])
                     
                     if USE_HF_API:
                         image = await generate_with_hf_api(image_prompt, width, height)
@@ -1314,26 +1394,47 @@ async def generate_svg(request: SVGGenerationRequest):
                     logger.error(f"Error generating image: {img_error}")
                     # Continue without image
 
-                # Step 2: Generate AI content based on the image concept
+                # Step 2: Handle backward compatibility for question types
+                # If frontend sends single question_type, use it; otherwise use question_types list
+                if request.question_type:
+                    question_types_to_use = [request.question_type]
+                else:
+                    question_types_to_use = request.question_types or ["fill_blank", "short_answer", "multiple_choice"]
+                
+                question_types_str = ", ".join(question_types_to_use)
+                
                 analysis_prompt = f"""
-                Create educational content for an image comprehension worksheet about {request.topic} in {request.subject} for grade {request.grade_level} students.
+                Create educational content for an image comprehension worksheet about {request.topic} in {request.subject} for {request.grade_level} students.
 
                 The image shows: {image_prompt}
 
+                REQUIREMENTS:
+                - Generate EXACTLY {request.num_questions} questions
+                - Use these question types: {question_types_str}
+                - Make questions appropriate for {request.grade_level} level
+                - Each question must be different and focus on different aspects
+                - Question 1: Basic observation/identification
+                - Question 2: Details or specific elements
+                - Question 3: Analysis or interpretation
+                - Question 4: Application or connection to learning
+                - Question 5: Creative or critical thinking (if 5 questions requested)
+
+                Additional requirements:
+                - If "fill_blank" is requested, include fill-in-the-blank style questions
+                - If "multiple_choice" is requested, provide multiple choice options
+                - If "short_answer" is requested, make questions that require brief explanations
+                - If "true_false" is requested, include true/false questions
+                - If "matching" is requested, include matching activities
+
                 Generate:
                 1. Clear, age-appropriate instructions for students
-                2. {request.num_questions} DISTINCT questions about the image/topic, each focusing on different aspects:
-                   - Question 1: Basic observation/identification
-                   - Question 2: Details or specific elements
-                   - Question 3: Analysis or interpretation
-                   - Question 4: Application or connection to learning
-                   - Question 5: Creative or critical thinking
+                2. Exactly {request.num_questions} questions using the specified question types
 
                 Return as JSON with fields: "instructions" and "questions" (array of strings).
-                Make each question unique and educational.
+                Make each question unique, educational, and appropriate for {request.grade_level}.
                 """
                 
-                system_message = "You are an expert educational content creator. Generate age-appropriate worksheet content as valid JSON only."
+                system_message = f"You are an expert educational content creator specializing in {request.subject} for {request.grade_level}. Generate age-appropriate worksheet content as valid JSON only."
                 
                 response = ai_service.query_model(analysis_prompt, system_message)
                 
@@ -1358,26 +1459,31 @@ async def generate_svg(request: SVGGenerationRequest):
                         text_replacements["instructions"] = content_data.get("instructions", text_replacements["instructions"])
                         ai_generated_placeholders.append("instructions")
                         
-                        # Set individual questions
+                        # Set individual questions (respect the exact number requested)
                         questions = content_data.get("questions", default_questions)
-                        for i in range(min(request.num_questions, len(questions))):
-                            text_replacements[f"question{i+1}"] = questions[i]
+                        for i in range(request.num_questions):
+                            if i < len(questions):
+                                text_replacements[f"question{i+1}"] = questions[i]
+                            else:
+                                text_replacements[f"question{i+1}"] = default_questions[i] if i < len(default_questions) else f"Question {i+1} about {request.topic}."
                             ai_generated_placeholders.append(f"question{i+1}")
                         
-                        # Fill any remaining question slots
-                        for i in range(len(questions), request.num_questions):
-                            if i < len(default_questions):
-                                text_replacements[f"question{i+1}"] = default_questions[i]
-                                ai_generated_placeholders.append(f"question{i+1}")
+                        # Clear unused question placeholders (question4, question5, etc.)
+                        for i in range(request.num_questions + 1, 6):  # Always clear up to question5
+                            text_replacements[f"question{i}"] = ""
 
                     except Exception as e:
                         logger.error(f"Error parsing AI content response: {e}")
                         # Use default questions
-                        text_replacements["instructions"] = default_questions[0]
+                        text_replacements["instructions"] = f"Look at the image and answer the questions about {request.topic}."
                         ai_generated_placeholders.append("instructions")
                         for i in range(request.num_questions):
                             text_replacements[f"question{i+1}"] = default_questions[i] if i < len(default_questions) else f"Question {i+1} about {request.topic}."
                             ai_generated_placeholders.append(f"question{i+1}")
+                        
+                        # Clear unused question placeholders
+                        for i in range(request.num_questions + 1, 6):  # Always clear up to question5
+                            text_replacements[f"question{i}"] = ""
 
             # Step 3: Embed images into SVG
             if generated_images:

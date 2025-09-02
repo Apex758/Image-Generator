@@ -1,59 +1,67 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1000" viewBox="0 0 800 1000">
+<svg xmlns="http://www.w3.org/2000/svg" width="794" height="1123" viewBox="0 0 794 1123">
   <defs>
     <style>
-      .title { font-family: Arial, sans-serif; font-size: 20px; font-weight: bold; fill: #2c3e50; }
-      .subtitle { font-family: Arial, sans-serif; font-size: 14px; fill: #34495e; }
-      .small { font-family: Arial, sans-serif; font-size: 12px; fill: #2c3e50; }
-      .instruction { font-family: Arial, sans-serif; font-size: 13px; fill: #2c3e50; font-weight: bold; }
-      .question { font-family: Arial, sans-serif; font-size: 12px; fill: #2c3e50; }
-      .placeholder { font-family: Arial, sans-serif; font-size: 14px; fill: #7f8c8d; }
+      .title { font-family: Arial, sans-serif; font-size: 18px; font-weight: bold; fill: #2c3e50; }
+      .subtitle { font-family: Arial, sans-serif; font-size: 12px; fill: #34495e; }
+      .small { font-family: Arial, sans-serif; font-size: 10px; fill: #2c3e50; }
+      .instruction { font-family: Arial, sans-serif; font-size: 11px; fill: #2c3e50; font-weight: bold; }
+      .question { font-family: Arial, sans-serif; font-size: 10px; fill: #2c3e50; }
+      .placeholder { font-family: Arial, sans-serif; font-size: 12px; fill: #7f8c8d; }
       .answer-line { stroke: #bdc3c7; stroke-width: 1; fill: none; }
     </style>
   </defs>
   
-  <!-- Background -->
-  <rect width="800" height="1000" fill="#ffffff" stroke="#ecf0f1" stroke-width="2"/>
+  <!-- Background with proper A4 margins -->
+  <rect width="794" height="1123" fill="#ffffff" stroke="none"/>
   
-  <!-- Header -->
-  <rect x="10" y="10" width="780" height="40" fill="#ffffff" stroke="#000000" stroke-width="1"/>
-  <text x="50" y="30" class="title">[subject] - Grade [grade]</text>
-  <text x="50" y="45" class="small">Name: _______________</text>
-  <text x="500" y="45" class="small">Date: ______</text>
+  <!-- Header section -->
+  <rect x="30" y="30" width="734" height="40" fill="#ffffff" stroke="#000000" stroke-width="1"/>
+  <text x="50" y="50" class="title">[subject] - Grade [grade]</text>
+  <text x="50" y="65" class="small">Name: _______________</text>
+  <text x="500" y="65" class="small">Date: ______</text>
   
   <!-- Topic -->
-  <text x="400" y="75" class="instruction" text-anchor="middle">Topic: [topic]</text>
+  <text x="397" y="95" class="instruction" text-anchor="middle">Topic: [topic]</text>
   
-  <!-- Image Placeholder - This is what gets replaced -->
-  <rect x="200" y="90" width="400" height="300" fill="#e8f4fd" stroke="#bdc3c7" stroke-width="2" stroke-dasharray="5,5" id="placeholder_image"/>
-  <text x="400" y="245" text-anchor="middle" class="placeholder">Image will appear here</text>
+  <!-- Image section with proper centering -->
+  <rect x="197" y="110" width="400" height="280" fill="#e8f4fd" stroke="#bdc3c7" stroke-width="2" stroke-dasharray="5,5" id="placeholder_image"/>
+  <!-- <text x="397" y="260" text-anchor="middle" class="placeholder">Image will appear here</text> -->
   
-  <!-- Instructions -->
-  <text x="50" y="420" class="instruction">[instructions]</text>
+  <!-- Instructions with proper wrapping and spacing -->
+  <foreignObject x="50" y="410" width="694" height="50">
+    <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: Arial, sans-serif; font-size: 11px; color: #2c3e50; font-weight: bold; line-height: 1.4; word-wrap: break-word; margin: 0; padding: 5px 0;">
+      [instructions]
+    </div>
+  </foreignObject>
   
-  <!-- Questions Section with Fill-in-the-blank style -->
-  <text x="50" y="460" class="question">1. [question1]</text>
-  <line x1="50" y1="480" x2="750" y2="480" class="answer-line"/>
-  <line x1="50" y1="500" x2="750" y2="500" class="answer-line"/>
+  <!-- Questions section with proper spacing -->
+  <text x="50" y="490" class="question">1. [question1]</text>
+  <line x1="50" y1="505" x2="744" y2="505" class="answer-line"/>
+  <line x1="50" y1="520" x2="744" y2="520" class="answer-line"/>
   
-  <text x="50" y="540" class="question">2. [question2]</text>
-  <line x1="50" y1="560" x2="750" y2="560" class="answer-line"/>
-  <line x1="50" y1="580" x2="750" y2="580" class="answer-line"/>
+  <text x="50" y="550" class="question">2. [question2]</text>
+  <line x1="50" y1="565" x2="744" y2="565" class="answer-line"/>
+  <line x1="50" y1="580" x2="744" y2="580" class="answer-line"/>
   
-  <text x="50" y="620" class="question">3. [question3]</text>
-  <line x1="50" y1="640" x2="750" y2="640" class="answer-line"/>
-  <line x1="50" y1="660" x2="750" y2="660" class="answer-line"/>
+  <text x="50" y="610" class="question">3. [question3]</text>
+  <line x1="50" y1="625" x2="744" y2="625" class="answer-line"/>
+  <line x1="50" y1="640" x2="744" y2="640" class="answer-line"/>
   
-  <text x="50" y="700" class="question">4. [question4]</text>
-  <line x1="50" y1="720" x2="750" y2="720" class="answer-line"/>
-  <line x1="50" y1="740" x2="750" y2="740" class="answer-line"/>
+  <text x="50" y="670" class="question">4. [question4]</text>
+  <line x1="50" y1="685" x2="744" y2="685" class="answer-line"/>
+  <line x1="50" y1="700" x2="744" y2="700" class="answer-line"/>
   
-  <text x="50" y="780" class="question">5. [question5]</text>
-  <line x1="50" y1="800" x2="750" y2="800" class="answer-line"/>
-  <line x1="50" y1="820" x2="750" y2="820" class="answer-line"/>
+  <text x="50" y="730" class="question">5. [question5]</text>
+  <line x1="50" y1="745" x2="744" y2="745" class="answer-line"/>
+  <line x1="50" y1="760" x2="744" y2="760" class="answer-line"/>
   
-  <!-- Activity Section -->
-  <text x="50" y="870" class="instruction">Activity:</text>
-  <text x="50" y="890" class="small">Draw or write about what you learned from this image:</text>
-  <rect x="50" y="900" width="700" height="80" fill="none" stroke="#bdc3c7" stroke-width="1" stroke-dasharray="3,3"/>
+  <!-- Activity Section with proper spacing -->
+  <text x="50" y="800" class="instruction">Activity:</text>
+  <text x="50" y="815" class="small">Draw or write about what you learned from this image:</text>
+  <rect x="50" y="825" width="694" height="120" fill="none" stroke="#bdc3c7" stroke-width="1" stroke-dasharray="3,3"/>
+  
+  <!-- Footer area -->
+  <rect x="30" y="1070" width="734" height="25" fill="#f8f9fa"/>
+  <text x="397" y="1085" class="small" text-anchor="middle">Page 1</text>
 </svg>

@@ -1,84 +1,96 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1000" viewBox="0 0 800 1000">
+<svg xmlns="http://www.w3.org/2000/svg" width="794" height="1123" viewBox="0 0 794 1123">
   <defs>
     <style>
-      .title { font-family: Arial, sans-serif; font-size: 22px; font-weight: bold; fill: #2c3e50; text-anchor: middle; }
-      .subtitle { font-family: Arial, sans-serif; font-size: 16px; fill: #34495e; text-anchor: middle; }
-      .small { font-family: Arial, sans-serif; font-size: 12px; fill: #2c3e50; }
-      .instruction { font-family: Arial, sans-serif; font-size: 14px; fill: #2c3e50; font-weight: bold; }
-      .question { font-family: Arial, sans-serif; font-size: 13px; fill: #2c3e50; }
-      .option { font-family: Arial, sans-serif; font-size: 12px; fill: #2c3e50; }
-      .placeholder { font-family: Arial, sans-serif; font-size: 14px; fill: #7f8c8d; }
+      .title { font-family: Arial, sans-serif; font-size: 20px; font-weight: bold; fill: #2c3e50; text-anchor: middle; }
+      .subtitle { font-family: Arial, sans-serif; font-size: 14px; fill: #34495e; text-anchor: middle; }
+      .small { font-family: Arial, sans-serif; font-size: 10px; fill: #2c3e50; }
+      .instruction { font-family: Arial, sans-serif; font-size: 12px; fill: #2c3e50; font-weight: bold; }
+      .question { font-family: Arial, sans-serif; font-size: 11px; fill: #2c3e50; }
+      .option { font-family: Arial, sans-serif; font-size: 10px; fill: #2c3e50; }
+      .placeholder { font-family: Arial, sans-serif; font-size: 12px; fill: #7f8c8d; }
     </style>
   </defs>
   
   <!-- Background -->
-  <rect width="800" height="1000" fill="#ffffff" stroke="#ecf0f1" stroke-width="2"/>
+  <rect width="794" height="1123" fill="#ffffff" stroke="none"/>
   
   <!-- Header with name/date -->
-  <text x="50" y="25" class="small" id="placeholder_name">Name: ________________</text>
-  <text x="500" y="25" class="small" id="placeholder_date">Date: ________________</text>
+  <text x="50" y="50" class="small">Name: ________________</text>
+  <text x="550" y="50" class="small">Date: ________________</text>
   
   <!-- Title section -->
-  <text x="400" y="60" class="title" id="placeholder_subject">[SUBJECT]</text>
-  <text x="400" y="85" class="subtitle" id="placeholder_topic">[TOPIC]</text>
+  <text x="397" y="80" class="title">[subject]</text>
+  <text x="397" y="100" class="subtitle">[topic]</text>
   
-  <!-- Instructions -->
-  <text x="400" y="115" class="instruction" text-anchor="middle" id="placeholder_instructions">[INSTRUCTIONS]</text>
+  <!-- Instructions with proper text wrapping -->
+  <foreignObject x="50" y="120" width="694" height="35">
+    <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: Arial, sans-serif; font-size: 12px; color: #2c3e50; font-weight: bold; line-height: 1.4; word-wrap: break-word; text-align: center; margin: 0; padding: 5px 0;">
+      [instructions]
+    </div>
+  </foreignObject>
   
   <!-- Image positioned center-left -->
-  <rect x="50" y="140" width="350" height="250" fill="#e8f4fd" stroke="#bdc3c7" stroke-width="2" stroke-dasharray="5,5"/>
-  <text x="225" y="270" text-anchor="middle" class="placeholder" id="placeholder_image">[IMAGE HERE]</text>
+  <rect x="50" y="170" width="320" height="220" fill="#e8f4fd" stroke="#bdc3c7" stroke-width="2" stroke-dasharray="5,5" id="placeholder_image"/>
+  <!-- <text x="397" y="260" text-anchor="middle" class="placeholder">Image will appear here</text> -->
   
   <!-- Multiple choice questions on the right side -->
-  <text x="430" y="170" class="question" id="placeholder_question1">1. [QUESTION_1]</text>
-  <circle cx="440" cy="185" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
-  <text x="450" y="189" class="option" id="placeholder_option1a">A) [OPTION_A]</text>
-  <circle cx="440" cy="200" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
-  <text x="450" y="204" class="option" id="placeholder_option1b">B) [OPTION_B]</text>
-  <circle cx="440" cy="215" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
-  <text x="450" y="219" class="option" id="placeholder_option1c">C) [OPTION_C]</text>
-  <circle cx="440" cy="230" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
-  <text x="450" y="234" class="option" id="placeholder_option1d">D) [OPTION_D]</text>
+  <text x="390" y="190" class="question">1. [question1]</text>
+  <circle cx="400" cy="202" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
+  <text x="408" y="206" class="option">A) [OPTION_A]</text>
+  <circle cx="400" cy="215" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
+  <text x="408" y="219" class="option">B) [OPTION_B]</text>
+  <circle cx="400" cy="228" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
+  <text x="408" y="232" class="option">C) [OPTION_C]</text>
+  <circle cx="400" cy="241" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
+  <text x="408" y="245" class="option">D) [OPTION_D]</text>
   
-  <text x="430" y="260" class="question" id="placeholder_question2">2. [QUESTION_2]</text>
-  <circle cx="440" cy="275" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
-  <text x="450" y="279" class="option" id="placeholder_option2a">A) [OPTION_A]</text>
-  <circle cx="440" cy="290" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
-  <text x="450" y="294" class="option" id="placeholder_option2b">B) [OPTION_B]</text>
-  <circle cx="440" cy="305" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
-  <text x="450" y="309" class="option" id="placeholder_option2c">C) [OPTION_C]</text>
-  <circle cx="440" cy="320" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
-  <text x="450" y="324" class="option" id="placeholder_option2d">D) [OPTION_D]</text>
+  <text x="390" y="265" class="question">2. [question2]</text>
+  <circle cx="400" cy="277" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
+  <text x="408" y="281" class="option">A) [OPTION_A]</text>
+  <circle cx="400" cy="290" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
+  <text x="408" y="294" class="option">B) [OPTION_B]</text>
+  <circle cx="400" cy="303" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
+  <text x="408" y="307" class="option">C) [OPTION_C]</text>
+  <circle cx="400" cy="316" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
+  <text x="408" y="320" class="option">D) [OPTION_D]</text>
   
-  <text x="430" y="350" class="question" id="placeholder_question3">3. [QUESTION_3]</text>
-  <circle cx="440" cy="365" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
-  <text x="450" y="369" class="option" id="placeholder_option3a">A) [OPTION_A]</text>
-  <circle cx="440" cy="380" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
-  <text x="450" y="384" class="option" id="placeholder_option3b">B) [OPTION_B]</text>
-  <circle cx="440" cy="395" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
-  <text x="450" y="399" class="option" id="placeholder_option3c">C) [OPTION_C]</text>
-  <circle cx="440" cy="410" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
-  <text x="450" y="414" class="option" id="placeholder_option3d">D) [OPTION_D]</text>
+  <text x="390" y="340" class="question">3. [question3]</text>
+  <circle cx="400" cy="352" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
+  <text x="408" y="356" class="option">A) [OPTION_A]</text>
+  <circle cx="400" cy="365" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
+  <text x="408" y="369" class="option">B) [OPTION_B]</text>
+  <circle cx="400" cy="378" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
+  <text x="408" y="382" class="option">C) [OPTION_C]</text>
+  <circle cx="400" cy="391" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
+  <text x="408" y="395" class="option">D) [OPTION_D]</text>
   
   <!-- Additional questions below image -->
-  <text x="50" y="440" class="question" id="placeholder_question4">4. [QUESTION_4]</text>
-  <circle cx="60" cy="455" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
-  <text x="70" y="459" class="option" id="placeholder_option4a">A) [OPTION_A]</text>
-  <circle cx="200" cy="455" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
-  <text x="210" y="459" class="option" id="placeholder_option4b">B) [OPTION_B]</text>
-  <circle cx="60" cy="470" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
-  <text x="70" y="474" class="option" id="placeholder_option4c">C) [OPTION_C]</text>
-  <circle cx="200" cy="470" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
-  <text x="210" y="474" class="option" id="placeholder_option4d">D) [OPTION_D]</text>
+  <text x="50" y="420" class="question">4. [question4]</text>
+  <circle cx="60" cy="432" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
+  <text x="68" y="436" class="option">A) [OPTION_A]</text>
+  <circle cx="180" cy="432" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
+  <text x="188" y="436" class="option">B) [OPTION_B]</text>
+  <circle cx="300" cy="432" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
+  <text x="308" y="436" class="option">C) [OPTION_C]</text>
+  <circle cx="420" cy="432" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
+  <text x="428" y="436" class="option">D) [OPTION_D]</text>
   
-  <text x="50" y="500" class="question" id="placeholder_question5">5. [QUESTION_5]</text>
-  <circle cx="60" cy="515" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
-  <text x="70" y="519" class="option" id="placeholder_option5a">A) [OPTION_A]</text>
-  <circle cx="200" cy="515" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
-  <text x="210" y="519" class="option" id="placeholder_option5b">B) [OPTION_B]</text>
-  <circle cx="60" cy="530" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
-  <text x="70" y="534" class="option" id="placeholder_option5c">C) [OPTION_C]</text>
-  <circle cx="200" cy="530" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
-  <text x="210" y="534" class="option" id="placeholder_option5d">D) [OPTION_D]</text>
+  <text x="50" y="460" class="question">5. [question5]</text>
+  <circle cx="60" cy="472" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
+  <text x="68" y="476" class="option">A) [OPTION_A]</text>
+  <circle cx="180" cy="472" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
+  <text x="188" y="476" class="option">B) [OPTION_B]</text>
+  <circle cx="300" cy="472" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
+  <text x="308" y="476" class="option">C) [OPTION_C]</text>
+  <circle cx="420" cy="472" r="3" fill="none" stroke="#2c3e50" stroke-width="1"/>
+  <text x="428" y="476" class="option">D) [OPTION_D]</text>
+  
+  <!-- Extra space for additional work -->
+  <rect x="50" y="500" width="694" height="100" fill="none" stroke="#bdc3c7" stroke-width="1" stroke-dasharray="3,3"/>
+  <text x="60" y="515" class="small">Extra space for work/explanations:</text>
+  
+  <!-- Footer area -->
+  <rect x="30" y="1070" width="734" height="25" fill="#f8f9fa"/>
+  <text x="397" y="1085" class="small" text-anchor="middle">Page 1</text>
 </svg>

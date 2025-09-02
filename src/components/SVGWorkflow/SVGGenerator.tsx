@@ -17,7 +17,7 @@ export const SVGGenerator: React.FC = () => {
   const [layoutStyle, setLayoutStyle] = useState('layout1');
   const [numQuestions, setNumQuestions] = useState(5);
   const [questionTypes, setQuestionTypes] = useState(['fill_blank']);
-  const [aspectRatio, setAspectRatio] = useState('16:9');
+  const [imageFormat, setImageFormat] = useState('landscape'); // Changed from aspectRatio
   const [imageCount, setImageCount] = useState(3);
   const [customInstructions, setCustomInstructions] = useState('');
   const [generatedSVG, setGeneratedSVG] = useState<GenerateSVGResponse | null>(null);
@@ -48,15 +48,30 @@ export const SVGGenerator: React.FC = () => {
     if (selectedType) {
       setImageCount(selectedType.minImages);
     }
+
+    // For image comprehension, set specific defaults
+    if (type === 'image_comprehension') {
+      setImageCount(1);
+      setQuestionTypes(['fill_blank']);
+    }
   
     setCurrentStep('configure');
   };
 
   const handleGenerate = () => {
-    if (!selectedContentType || !subject || !gradeLevel) {
-      alert('Please fill in all required fields');
+    if (!selectedContentType || !subject || !gradeLevel || !topic) {
+      alert('Please fill in all required fields (Subject, Grade Level, Topic)');
       return;
     }
+
+    if (questionTypes.length === 0) {
+      alert('Please select at least one question type');
+      return;
+    }
+
+    // Get image aspect ratio from selected format
+    const selectedFormat = imageFormatOptions.find(f => f.value === imageFormat);
+    const imageAspectRatio = selectedFormat ? selectedFormat.aspectRatio : { width: 16, height: 9 };
 
     const request: GenerateSVGRequest = {
       content_type: selectedContentType,
@@ -64,9 +79,10 @@ export const SVGGenerator: React.FC = () => {
       topic,
       grade_level: gradeLevel,
       layout_style: layoutStyle,
-      num_questions: numQuestions,
-      question_types: questionTypes,
-      aspect_ratio: aspectRatio,
+      num_questions: numQuestions, // Will be passed to AI
+      question_types: questionTypes, // Will be passed to AI
+      image_format: imageFormat, // Changed from aspect_ratio
+      image_aspect_ratio: imageAspectRatio, // New field for AI
       image_count: imageCount,
       custom_instructions: customInstructions || undefined,
     };
@@ -89,22 +105,41 @@ export const SVGGenerator: React.FC = () => {
     setProcessedSVG('');
   };
 
+  // Updated options for K-6 education
   const gradeOptions = [
-    'K-2', '3-5', '6-8', '9-12', 'College', 'Adult Education'
+    'Kindergarten', 'Grade 1', 'Grade 2', 'Grade 3', 'Grade 4', 'Grade 5', 'Grade 6'
   ];
 
-  const aspectRatioOptions = [
-    { value: '16:9', label: 'Widescreen (16:9)' },
-    { value: '4:3', label: 'Standard (4:3)' },
-    { value: '1:1', label: 'Square (1:1)' },
-    { value: '3:4', label: 'Portrait (3:4)' },
+  const subjectOptions = [
+    'Mathematics', 'Language Arts', 'Science', 'Social Studies'
+  ];
+
+  const layoutOptions = [
+    { value: 'layout1', label: 'Fill-in-the-Blanks (Scene-based questions)' },
+    { value: 'layout2', label: 'Reading Comprehension (Paragraph + Q&A)' },
+    { value: 'layout3', label: 'Multiple Choice Analysis' }
+  ];
+
+  const imageFormatOptions = [
+    { value: 'landscape', label: 'Landscape Image (16:9)', aspectRatio: { width: 16, height: 9 } },
+    { value: 'square', label: 'Square Image (1:1)', aspectRatio: { width: 1, height: 1 } },
+    { value: 'portrait', label: 'Portrait Image (3:4)', aspectRatio: { width: 3, height: 4 } },
+    { value: 'wide', label: 'Wide Image (3:2)', aspectRatio: { width: 3, height: 2 } }
+  ];
+
+  const questionTypeOptions = [
+    { value: 'fill_blank', label: 'Fill in the Blanks' },
+    { value: 'short_answer', label: 'Short Answer' },
+    { value: 'multiple_choice', label: 'Multiple Choice' },
+    { value: 'true_false', label: 'True/False' },
+    { value: 'matching', label: 'Matching' }
   ];
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
       <div className="flex items-center gap-3 mb-6">
         <FileText className="h-5 w-5 text-blue-600" />
-        <h2 className="text-xl font-semibold text-gray-900">SVG Worksheet Generator</h2>
+        <h2 className="text-xl font-semibold text-gray-900">K-6 Worksheet Generator</h2>
         {currentStep !== 'select' && (
           <Button
             variant="outline"
@@ -165,21 +200,24 @@ export const SVGGenerator: React.FC = () => {
       {currentStep === 'configure' && (
         <div className="space-y-6">
           <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Configure Your Worksheet</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">Configure Your K-6 Worksheet</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label htmlFor="subject" className="block text-sm font-medium text-gray-700 mb-2">
                   Subject *
                 </label>
-                <input
-                  type="text"
+                <select
                   id="subject"
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
-                  placeholder="e.g., Mathematics, Science, English"
                   className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   required
-                />
+                >
+                  <option value="">Select subject</option>
+                  {subjectOptions.map((subj) => (
+                    <option key={subj} value={subj}>{subj}</option>
+                  ))}
+                </select>
               </div>
 
               <div>
@@ -200,101 +238,144 @@ export const SVGGenerator: React.FC = () => {
                 </select>
               </div>
 
-<div>
-  <label htmlFor="topic" className="block text-sm font-medium text-gray-700 mb-2">
-    Topic *
-  </label>
-  <input
-    type="text"
-    id="topic"
-    value={topic}
-    onChange={(e) => setTopic(e.target.value)}
-    placeholder="e.g., Prepositions, Reading Comprehension, Animals"
-    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-    required
-  />
-</div>
-
-<div>
-  <label htmlFor="layoutStyle" className="block text-sm font-medium text-gray-700 mb-2">
-    Worksheet Layout
-  </label>
-  <select
-    id="layoutStyle"
-    value={layoutStyle}
-    onChange={(e) => setLayoutStyle(e.target.value)}
-    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-  >
-    <option value="layout1">Fill-in-the-Blanks (Scene-based)</option>
-    <option value="layout2">Reading Comprehension (Paragraph + Q&A)</option>
-    <option value="layout3">Multiple Choice Analysis</option>
-  </select>
-</div>
-
-<div className="grid grid-cols-2 gap-4">
-  <div>
-    <label htmlFor="numQuestions" className="block text-sm font-medium text-gray-700 mb-2">
-      Number of Questions
-    </label>
-    <input
-      type="number"
-      id="numQuestions"
-      value={numQuestions}
-      onChange={(e) => setNumQuestions(parseInt(e.target.value))}
-      min="3"
-      max="10"
-      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-    />
-  </div>
-  
-  <div>
-    <label htmlFor="questionTypes" className="block text-sm font-medium text-gray-700 mb-2">
-      Question Types
-    </label>
-    <select
-      id="questionTypes"
-      multiple
-      value={questionTypes}
-      onChange={(e) => setQuestionTypes(Array.from(e.target.selectedOptions, option => option.value))}
-      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-    >
-      <option value="fill_blank">Fill in the Blanks</option>
-      <option value="short_answer">Short Answer</option>
-      <option value="multiple_choice">Multiple Choice</option>
-      <option value="true_false">True/False</option>
-    </select>
-  </div>
-</div>
+              <div>
+                <label htmlFor="topic" className="block text-sm font-medium text-gray-700 mb-2">
+                  Topic *
+                </label>
+                <input
+                  type="text"
+                  id="topic"
+                  value={topic}
+                  onChange={(e) => setTopic(e.target.value)}
+                  placeholder="e.g., Addition & Subtraction, Reading Comprehension, Weather"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                />
+              </div>
 
               <div>
-                <label htmlFor="aspectRatio" className="block text-sm font-medium text-gray-700 mb-2">
-                  Page Format
+                <label htmlFor="layoutStyle" className="block text-sm font-medium text-gray-700 mb-2">
+                  Worksheet Layout Style
                 </label>
                 <select
-                  id="aspectRatio"
-                  value={aspectRatio}
-                  onChange={(e) => setAspectRatio(e.target.value)}
+                  id="layoutStyle"
+                  value={layoutStyle}
+                  onChange={(e) => setLayoutStyle(e.target.value)}
                   className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  {aspectRatioOptions.map((ratio) => (
-                    <option key={ratio.value} value={ratio.value}>{ratio.label}</option>
+                  {layoutOptions.map((layout) => (
+                    <option key={layout.value} value={layout.value}>{layout.label}</option>
                   ))}
                 </select>
               </div>
 
+              <div className={`grid gap-4 ${selectedContentType === 'image_comprehension' ? 'grid-cols-1' : 'grid-cols-2'}`}>
+                <div>
+                  <label htmlFor="numQuestions" className="block text-sm font-medium text-gray-700 mb-2">
+                    Number of Questions *
+                  </label>
+                  <input
+                    type="number"
+                    id="numQuestions"
+                    value={numQuestions}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === '') {
+                        setNumQuestions(5); // Default value when cleared
+                      } else {
+                        const parsed = parseInt(value);
+                        if (!isNaN(parsed) && parsed >= 3 && parsed <= 8) {
+                          setNumQuestions(parsed);
+                        }
+                      }
+                    }}
+                    min="3"
+                    max="8"
+                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                
+                {selectedContentType !== 'image_comprehension' && (
+                  <div>
+                    <label htmlFor="imageCount" className="block text-sm font-medium text-gray-700 mb-2">
+                      Number of Images
+                    </label>
+                    <input
+                      type="number"
+                      id="imageCount"
+                      value={imageCount}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        const minImages = contentTypes.find((ct) => ct.id === selectedContentType)?.minImages ?? 1;
+                        const maxImages = contentTypes.find((ct) => ct.id === selectedContentType)?.maxImages ?? 10;
+                        
+                        if (value === '') {
+                          setImageCount(minImages); // Default to minimum when cleared
+                        } else {
+                          const parsed = parseInt(value);
+                          if (!isNaN(parsed) && parsed >= minImages && parsed <= maxImages) {
+                            setImageCount(parsed);
+                          }
+                        }
+                      }}
+                      min={contentTypes.find((ct) => ct.id === selectedContentType)?.minImages ?? 1}
+                      max={contentTypes.find((ct) => ct.id === selectedContentType)?.maxImages ?? 10}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                )}
+              </div>
+
               <div>
-                <label htmlFor="imageCount" className="block text-sm font-medium text-gray-700 mb-2">
-                  Number of Images
+                <label htmlFor="questionTypes" className="block text-sm font-medium text-gray-700 mb-2">
+                  {selectedContentType === 'image_comprehension' ? 'Question Type *' : 'Question Types * (AI will respect these)'}
                 </label>
-                <input
-                  type="number"
-                  id="imageCount"
-                  value={imageCount}
-                  onChange={(e) => setImageCount(parseInt(e.target.value))}
-                  min={contentTypes.find((ct) => ct.id === selectedContentType)?.minImages ?? 1}
-                  max={contentTypes.find((ct) => ct.id === selectedContentType)?.maxImages ?? 10}
+                {selectedContentType === 'image_comprehension' ? (
+                  <select
+                    id="questionTypes"
+                    value={questionTypes[0] || 'fill_blank'}
+                    onChange={(e) => setQuestionTypes([e.target.value])}
+                    className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  >
+                    {questionTypeOptions.map((type) => (
+                      <option key={type.value} value={type.value}>{type.label}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <>
+                    <select
+                      id="questionTypes"
+                      multiple
+                      value={questionTypes}
+                      onChange={(e) => setQuestionTypes(Array.from(e.target.selectedOptions, option => option.value))}
+                      className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent h-24"
+                      required
+                    >
+                      {questionTypeOptions.map((type) => (
+                        <option key={type.value} value={type.value}>{type.label}</option>
+                      ))}
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">Hold Ctrl/Cmd to select multiple types</p>
+                  </>
+                )}
+              </div>
+
+              <div>
+                <label htmlFor="imageFormat" className="block text-sm font-medium text-gray-700 mb-2">
+                  Image Format (for AI generation)
+                </label>
+                <select
+                  id="imageFormat"
+                  value={imageFormat}
+                  onChange={(e) => setImageFormat(e.target.value)}
                   className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
+                >
+                  {imageFormatOptions.map((format) => (
+                    <option key={format.value} value={format.value}>{format.label}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 mt-1">This determines the aspect ratio for AI-generated images</p>
               </div>
             </div>
 
@@ -306,7 +387,7 @@ export const SVGGenerator: React.FC = () => {
                 id="customInstructions"
                 value={customInstructions}
                 onChange={(e) => setCustomInstructions(e.target.value)}
-                placeholder="Add any specific requirements or instructions for your worksheet..."
+                placeholder="Add any specific requirements for your K-6 worksheet..."
                 rows={4}
                 className="w-full px-4 py-3 border border-gray-200 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
@@ -322,18 +403,18 @@ export const SVGGenerator: React.FC = () => {
             </Button>
             <Button
               onClick={handleGenerate}
-              disabled={!subject || !gradeLevel || generateMutation.isLoading}
+              disabled={!subject || !gradeLevel || !topic || questionTypes.length === 0 || generateMutation.isLoading}
               className="flex-1"
             >
               {generateMutation.isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Generating Worksheet...
+                  Generating K-6 Worksheet...
                 </>
               ) : (
                 <>
                   <Sparkles className="mr-2 h-4 w-4" />
-                  Generate Worksheet
+                  Generate K-6 Worksheet
                 </>
               )}
             </Button>
