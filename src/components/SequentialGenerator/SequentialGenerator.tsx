@@ -19,6 +19,7 @@ export const SequentialGenerator: React.FC<SequentialGeneratorProps> = ({
   const [generatedImages, setGeneratedImages] = useState<ImageData[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [hasStartedCurrentGeneration, setHasStartedCurrentGeneration] = useState(false);
   const queryClient = useQueryClient();
 
   // Generate a single image
@@ -39,21 +40,17 @@ export const SequentialGenerator: React.FC<SequentialGeneratorProps> = ({
         // Add the new image to our list
         setGeneratedImages(prev => [...prev, data]);
         
-        // Move to the next prompt
+        // Reset the generation flag and move to the next prompt
+        setHasStartedCurrentGeneration(false);
         setCurrentIndex(prev => prev + 1);
         
         // Refresh the image gallery
         queryClient.invalidateQueries('images');
       },
-      onError: (error: any) => {
+      onError: (error: unknown) => {
         console.error('[SequentialGenerator] Generation failed:', error);
-        console.error('[SequentialGenerator] Error details:', {
-          name: error?.name,
-          message: error?.message,
-          status: error?.response?.status,
-          data: error?.response?.data
-        });
         setError('Failed to generate image. Please try again.');
+        setHasStartedCurrentGeneration(false);
         setIsGenerating(false);
       },
     }
@@ -61,7 +58,8 @@ export const SequentialGenerator: React.FC<SequentialGeneratorProps> = ({
 
   // Start or continue the generation process
   useEffect(() => {
-    if (isGenerating && currentIndex < prompts.length) {
+    if (isGenerating && currentIndex < prompts.length && !generateMutation.isLoading && !hasStartedCurrentGeneration) {
+      setHasStartedCurrentGeneration(true);
       // Generate the current image
       generateMutation.mutate({ prompt: prompts[currentIndex].prompt });
     } else if (isGenerating && currentIndex >= prompts.length) {
@@ -69,7 +67,7 @@ export const SequentialGenerator: React.FC<SequentialGeneratorProps> = ({
       setIsGenerating(false);
       onComplete();
     }
-  }, [isGenerating, currentIndex, prompts, generateMutation, onComplete]);
+  }, [isGenerating, currentIndex, prompts.length, generateMutation.isLoading, hasStartedCurrentGeneration, onComplete]);
 
   // Start the generation process
   const handleStart = () => {

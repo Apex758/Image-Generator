@@ -327,47 +327,6 @@ export const SVGGenerator: React.FC = () => {
                 </label>
               </div>
             )}
-
-            {/* Space Usage Indicator */}
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-              <h4 className="font-medium text-gray-800 mb-2">📊 Worksheet Space Usage</h4>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span>Questions ({numQuestions}):</span>
-                  <span className="font-medium">{numQuestions * 35}px</span>
-                </div>
-                {includeWordBank && questionTypes.includes('fill_blank') && (
-                  <div className="flex justify-between text-green-700">
-                    <span>Word Bank:</span>
-                    <span className="font-medium">80px</span>
-                  </div>
-                )}
-                {includeActivityBox && (
-                  <div className="flex justify-between text-blue-700">
-                    <span>Activity Box:</span>
-                    <span className="font-medium">120px</span>
-                  </div>
-                )}
-                <div className="flex justify-between border-t pt-2">
-                  <span>Fixed Elements:</span>
-                  <span className="font-medium">445px</span>
-                </div>
-                <div className="flex justify-between font-bold border-t pt-2">
-                  <span>Total Used:</span>
-                  <span className={`font-medium ${
-                    (numQuestions * 35) + 445 + (includeWordBank && questionTypes.includes('fill_blank') ? 80 : 0) + (includeActivityBox ? 120 : 0) > 1023
-                      ? 'text-red-600' : 'text-green-600'
-                  }`}>
-                    {(numQuestions * 35) + 445 + (includeWordBank && questionTypes.includes('fill_blank') ? 80 : 0) + (includeActivityBox ? 120 : 0)}px / 1023px
-                  </span>
-                </div>
-              </div>
-              {((numQuestions * 35) + 445 + (includeWordBank && questionTypes.includes('fill_blank') ? 80 : 0) + (includeActivityBox ? 120 : 0)) > 1023 && (
-                <div className="mt-3 p-2 bg-red-50 border border-red-200 rounded text-sm text-red-700">
-                  ⚠️ Content may overflow! Consider reducing questions or disabling optional features.
-                </div>
-              )}
-            </div>
           </div>
 
           <div className="md:col-span-2">
@@ -419,10 +378,7 @@ export const SVGGenerator: React.FC = () => {
                   <span>10</span>
                 </div>
               </div>
-            </div>
-            <p className="text-xs text-gray-500 mt-2">
-              💡 The system automatically handles overflow by removing optional features or showing continuation notices.
-            </p>
+            </div>  
           </div>
 
           {/* Question Types - Enhanced for word bank */}

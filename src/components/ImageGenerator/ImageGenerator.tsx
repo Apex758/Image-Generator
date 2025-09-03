@@ -136,12 +136,13 @@ export const ImageGenerator: React.FC = () => {
   };
 
   const presetPrompts = [
-    "A diverse group of students sitting in a modern classroom, no text visible",
-    "Historical artifacts and ancient tools arranged on a table, photorealistic style",
-    "The water cycle process shown with clouds, rain, rivers and evaporation, no labels or text",
-    "Colorful geometric shapes divided into equal parts to show fractions visually",
-    "Ancient pyramids, temples and architectural structures from different civilizations",
-    "Laboratory equipment with colorful chemical reactions and scientific instruments",
+    "A magical library where books float and glow, filled with diverse young students reading, fantasy art style",
+    "Dinosaurs roaming through a lush prehistoric jungle with volcanoes in the background, vibrant and detailed",
+    "Children of different cultures celebrating around the world map with traditional foods and costumes, colorful art",
+    "Solar system with planets, asteroid belts, and a space station, cosmic art with bright colors and detail",
+    "Underground ant colony with tunnels, chambers, and busy ants working, detailed cutaway scientific illustration",
+    "A time machine workshop filled with gears, steam, and inventors from different eras working together",
+    "Ocean ecosystem showing coral reefs, fish, whales, and underwater plants in crystal clear water",
   ];
 
   // If SVG mode is selected, show the SVG generator
