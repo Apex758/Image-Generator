@@ -949,64 +949,263 @@ class SVGService:
             # Return original content if embedding fails
             return svg_content
     
+    def _detect_and_split_svg_pages(self, svg_content: str) -> List[str]:
+        """
+        Detect if SVG is multi-page and split into individual A4 pages.
+        Returns list of individual page SVG strings.
+        """
+        try:
+            # Check if this is a multi-page SVG
+            single_page_height = 1123  # A4 height
+            
+            # Extract height from SVG
+            height_match = re.search(r'height="(\d+)"', svg_content)
+            if not height_match:
+                return [svg_content]  # Can't determine height, return as single page
+            
+            total_height = int(height_match.group(1))
+            
+            # If height is close to single page, treat as single page
+            if total_height <= single_page_height + 100:  # Allow some tolerance
+                return [svg_content]
+            
+            # Multi-page detected - split into pages
+            pages = []
+            
+            # Calculate number of pages (assuming 50px spacing between pages)
+            page_spacing = 50
+            estimated_pages = int((total_height + page_spacing) / (single_page_height + page_spacing))
+            
+            for page_num in range(estimated_pages):
+                page_y_offset = page_num * (single_page_height + page_spacing)
+                page_svg = self._extract_svg_page(svg_content, page_y_offset, single_page_height)
+                if page_svg:
+                    pages.append(page_svg)
+            
+            return pages if pages else [svg_content]
+            
+        except Exception as e:
+            logger.error(f"Error splitting SVG pages: {e}")
+            return [svg_content]  # Return original on error
+
+    def _extract_svg_page(self, svg_content: str, y_offset: int, page_height: int) -> str:
+        """
+        Extract a single page from multi-page SVG by adjusting viewBox and clipping content.
+        """
+        try:
+            # Create a new SVG for this page with A4 dimensions
+            page_svg = f'''<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="794" height="{page_height}" viewBox="0 {y_offset} 794 {page_height}">
+  <defs>
+    <style>
+      .title {{ font-family: Arial, sans-serif; font-size: 18px; font-weight: bold; fill: #2c3e50; }}
+      .subtitle {{ font-family: Arial, sans-serif; font-size: 12px; fill: #34495e; }}
+      .small {{ font-family: Arial, sans-serif; font-size: 10px; fill: #2c3e50; }}
+      .instruction {{ font-family: Arial, sans-serif; font-size: 11px; fill: #2c3e50; font-weight: bold; }}
+      .question {{ font-family: Arial, sans-serif; font-size: 11px; fill: #2c3e50; }}
+      .placeholder {{ font-family: Arial, sans-serif; font-size: 12px; fill: #7f8c8d; }}
+      @media print {{
+        .page-break {{ page-break-before: always; }}
+      }}
+    </style>
+  </defs>
+  
+  <!-- Page background -->
+  <rect x="0" y="{y_offset}" width="794" height="{page_height}" fill="#ffffff" stroke="none"/>
+'''
+            
+            # Extract content elements that fall within this page's Y range
+            page_end_y = y_offset + page_height
+            
+            # Parse the original SVG to extract elements
+            import xml.etree.ElementTree as ET
+            try:
+                root = ET.fromstring(svg_content)
+                
+                # Extract all elements that should appear on this page
+                for elem in root.iter():
+                    if elem.tag in ['rect', 'text', 'foreignObject', 'line', 'circle', 'ellipse', 'image']:
+                        elem_y = self._get_element_y_position(elem)
+                        if elem_y is not None and y_offset <= elem_y < page_end_y:
+                            # Add this element to the page
+                            elem_svg = ET.tostring(elem, encoding='unicode')
+                            page_svg += f"\n  {elem_svg}"
+                
+            except Exception as parse_error:
+                logger.warning(f"Could not parse SVG for page extraction: {parse_error}")
+                # Fallback: use simple clipping
+                page_svg += f'\n  <g clip-path="url(#page-clip)">'
+                # Extract content between defs and closing svg
+                content_match = re.search(r'</defs>(.*)</svg>', svg_content, re.DOTALL)
+                if content_match:
+                    page_svg += content_match.group(1)
+                page_svg += '\n  </g>'
+            
+            page_svg += '\n</svg>'
+            return page_svg
+            
+        except Exception as e:
+            logger.error(f"Error extracting SVG page: {e}")
+            return None
+
+    def _get_element_y_position(self, element) -> int:
+        """Extract Y position from SVG element."""
+        try:
+            if element.get('y'):
+                return int(float(element.get('y')))
+            elif element.get('cy'):  # For circles
+                return int(float(element.get('cy')))
+            elif element.get('y1'):  # For lines
+                return int(float(element.get('y1')))
+            return None
+        except (ValueError, TypeError):
+            return None
+
     def export_svg_to_pdf(self, svg_content: str, filename: str) -> str:
-        """Export SVG to PDF format with proper A4 sizing."""
+        """Export SVG to PDF format with proper A4 sizing and multi-page support."""
         _, cairosvg = lazy_import_image_processing()
         try:
-            output_path = os.path.join(self.exports_dir, f"{filename}.pdf")
+            # Split into pages
+            pages = self._detect_and_split_svg_pages(svg_content)
             
-            # Clean SVG content for better compatibility
-            clean_svg = self._clean_svg_for_export(svg_content)
-            
-            # Use cairosvg to convert SVG to PDF with A4 dimensions
-            cairosvg.svg2pdf(
-                bytestring=clean_svg.encode('utf-8'),
-                write_to=output_path,
-                output_width=794,   # A4 width in pixels at 96 DPI
-                output_height=1123  # A4 height in pixels at 96 DPI
-            )
-            
-            return output_path
+            if len(pages) == 1:
+                # Single page export
+                output_path = os.path.join(self.exports_dir, f"{filename}.pdf")
+                clean_svg = self._clean_svg_for_export(pages[0])
+                
+                cairosvg.svg2pdf(
+                    bytestring=clean_svg.encode('utf-8'),
+                    write_to=output_path,
+                    output_width=794,   # A4 width in pixels at 96 DPI
+                    output_height=1123  # A4 height in pixels at 96 DPI
+                )
+                return output_path
+            else:
+                # Multi-page export using reportlab
+                from reportlab.pdfgen import canvas
+                from reportlab.lib.pagesizes import A4
+                import tempfile
+                
+                output_path = os.path.join(self.exports_dir, f"{filename}.pdf")
+                
+                # Create PDF with multiple pages
+                pdf_canvas = canvas.Canvas(output_path, pagesize=A4)
+                
+                for i, page_svg in enumerate(pages):
+                    # Convert each page to PNG first, then add to PDF
+                    clean_svg = self._clean_svg_for_export(page_svg)
+                    
+                    # Create temporary PNG
+                    with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as temp_file:
+                        cairosvg.svg2png(
+                            bytestring=clean_svg.encode('utf-8'),
+                            write_to=temp_file.name,
+                            dpi=150,
+                            output_width=1191,   # A4 width at 150 DPI
+                            output_height=1684   # A4 height at 150 DPI
+                        )
+                        
+                        # Add image to PDF page
+                        pdf_canvas.drawImage(temp_file.name, 0, 0, width=A4[0], height=A4[1])
+                        
+                        # Add new page if not last page
+                        if i < len(pages) - 1:
+                            pdf_canvas.showPage()
+                        
+                        # Clean up temp file
+                        os.unlink(temp_file.name)
+                
+                pdf_canvas.save()
+                return output_path
+                
         except Exception as e:
             logger.error(f"Error exporting SVG to PDF: {e}")
             raise HTTPException(status_code=500, detail=f"Error exporting to PDF: {str(e)}")
 
     def export_svg_to_png(self, svg_content: str, filename: str) -> str:
-        """Export SVG to PNG format with high quality A4 dimensions."""
+        """Export SVG to PNG format with high quality A4 dimensions and multi-page support."""
         _, cairosvg = lazy_import_image_processing()
         try:
-            output_path = os.path.join(self.exports_dir, f"{filename}.png")
+            # Split into pages
+            pages = self._detect_and_split_svg_pages(svg_content)
             
-            # Clean SVG content for better compatibility
-            clean_svg = self._clean_svg_for_export(svg_content)
-            
-            # Use cairosvg to convert SVG to PNG with high DPI for quality
-            cairosvg.svg2png(
-                bytestring=clean_svg.encode('utf-8'),
-                write_to=output_path,
-                dpi=300,  # High DPI for print quality
-                output_width=2384,   # A4 width at 300 DPI (794 * 3)
-                output_height=3369   # A4 height at 300 DPI (1123 * 3)
-            )
-            
-            return output_path
+            if len(pages) == 1:
+                # Single page export
+                output_path = os.path.join(self.exports_dir, f"{filename}.png")
+                clean_svg = self._clean_svg_for_export(pages[0])
+                
+                cairosvg.svg2png(
+                    bytestring=clean_svg.encode('utf-8'),
+                    write_to=output_path,
+                    dpi=300,
+                    output_width=2384,   # A4 width at 300 DPI
+                    output_height=3369   # A4 height at 300 DPI
+                )
+                return output_path
+            else:
+                # Multi-page export - create separate PNG files
+                from PIL import Image
+                
+                page_images = []
+                temp_files = []
+                
+                # Create PNG for each page
+                for i, page_svg in enumerate(pages):
+                    clean_svg = self._clean_svg_for_export(page_svg)
+                    
+                    # Create temporary file for this page
+                    import tempfile
+                    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=f'_page_{i+1}.png')
+                    temp_files.append(temp_file.name)
+                    
+                    cairosvg.svg2png(
+                        bytestring=clean_svg.encode('utf-8'),
+                        write_to=temp_file.name,
+                        dpi=300,
+                        output_width=2384,   # A4 width at 300 DPI
+                        output_height=3369   # A4 height at 300 DPI
+                    )
+                    
+                    # Load the image
+                    page_img = Image.open(temp_file.name)
+                    page_images.append(page_img)
+                    temp_file.close()
+                
+                # Combine pages vertically into one tall image
+                total_height = sum(img.height for img in page_images)
+                combined_width = page_images[0].width
+                
+                combined_image = Image.new('RGB', (combined_width, total_height), 'white')
+                
+                y_offset = 0
+                for img in page_images:
+                    combined_image.paste(img, (0, y_offset))
+                    y_offset += img.height
+                
+                # Save combined image
+                output_path = os.path.join(self.exports_dir, f"{filename}.png")
+                combined_image.save(output_path, 'PNG', dpi=(300, 300))
+                
+                # Clean up temporary files
+                for temp_file in temp_files:
+                    try:
+                        os.unlink(temp_file)
+                    except:
+                        pass
+                
+                return output_path
+                
         except Exception as e:
             logger.error(f"Error exporting SVG to PNG: {e}")
             raise HTTPException(status_code=500, detail=f"Error exporting to PNG: {str(e)}")
 
     def export_svg_to_docx(self, svg_content: str, filename: str) -> str:
-        """Export SVG to DOCX format with proper A4 page setup."""
+        """Export SVG to DOCX format with proper A4 page setup and multi-page support."""
         _, cairosvg = lazy_import_image_processing()
         _, Document, Inches, tempfile = lazy_import_document_processing()
         try:
-            # First convert SVG to PNG in memory with A4 dimensions
-            clean_svg = self._clean_svg_for_export(svg_content)
-            png_data = cairosvg.svg2png(
-                bytestring=clean_svg.encode('utf-8'),
-                dpi=300,
-                output_width=2384,   # A4 width at 300 DPI
-                output_height=3369   # A4 height at 300 DPI
-            )
+            # Split into pages
+            pages = self._detect_and_split_svg_pages(svg_content)
             
             # Create DOCX document with A4 page setup
             doc = Document()
@@ -1020,21 +1219,37 @@ class SVGService:
             section.top_margin = Inches(0.5)
             section.bottom_margin = Inches(0.5)
             
-            # Add the image to document
-            with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as temp_file:
-                temp_file.write(png_data)
-                temp_file.flush()
+            # Process each page
+            for i, page_svg in enumerate(pages):
+                # Convert page to PNG
+                clean_svg = self._clean_svg_for_export(page_svg)
+                png_data = cairosvg.svg2png(
+                    bytestring=clean_svg.encode('utf-8'),
+                    dpi=300,
+                    output_width=2384,   # A4 width at 300 DPI
+                    output_height=3369   # A4 height at 300 DPI
+                )
                 
-                # Add to document with A4-appropriate size
-                doc.add_picture(temp_file.name, width=Inches(7.27))  # Width minus margins
-                
-                # Clean up temp file
-                os.unlink(temp_file.name)
+                # Add the image to document
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as temp_file:
+                    temp_file.write(png_data)
+                    temp_file.flush()
+                    
+                    # Add to document with A4-appropriate size
+                    doc.add_picture(temp_file.name, width=Inches(7.27))  # Width minus margins
+                    
+                    # Add page break if not last page
+                    if i < len(pages) - 1:
+                        doc.add_page_break()
+                    
+                    # Clean up temp file
+                    os.unlink(temp_file.name)
             
             output_path = os.path.join(self.exports_dir, f"{filename}.docx")
             doc.save(output_path)
             
             return output_path
+            
         except Exception as e:
             logger.error(f"Error exporting SVG to DOCX: {e}")
             raise HTTPException(status_code=500, detail=f"Error exporting to DOCX: {str(e)}")
@@ -1403,7 +1618,6 @@ def generate_layout1_template_with_wordbank(num_questions: int, subject: str, gr
 </svg>'''
     
     return svg_content
-
 
 def generate_layout2_template(num_questions: int, subject: str, grade_level: str, topic: str) -> str:
     """

@@ -122,34 +122,12 @@ export const SVGPreview: React.FC<SVGPreviewProps> = ({
             </Button>
           </div>
         </div>
-
-        {/* Placeholders Info */}
-        {placeholders.length > 0 && (
-          <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <h4 className="text-sm font-medium text-blue-800 mb-2">
-              Text Placeholders Found ({placeholders.length})
-            </h4>
-            <div className="flex flex-wrap gap-2">
-              {placeholders.map((placeholder, index) => (
-                <span
-                  key={index}
-                  className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
-                >
-                  {placeholder}
-                </span>
-              ))}
-            </div>
-            <p className="text-xs text-blue-700 mt-2">
-              Click "Edit Text" to customize these placeholders with your own content.
-            </p>
-          </div>
-        )}
       </div>
 
       {/* SVG Preview */}
       <div className="border border-gray-200 rounded-lg p-4 bg-white overflow-auto">
         <div className="flex items-center justify-center min-h-[400px]">
-          <div 
+          <div
             className="svg-container"
             style={{
               transform: `scale(${scale})`,
@@ -158,54 +136,13 @@ export const SVGPreview: React.FC<SVGPreviewProps> = ({
               maxWidth: '100%'
             }}
           >
-            {/* Use an inline SVG approach that's more reliable */}
             <div
               className="inline-block shadow-lg rounded-lg overflow-hidden bg-white"
               style={{ maxWidth: '100%', height: 'auto' }}
-            >
-              <svg
-                style={{ display: 'block', maxWidth: '100%', height: 'auto' }}
-                dangerouslySetInnerHTML={{ __html: processedSVG.replace('<svg', '<g').replace('</svg>', '</g>') }}
-                viewBox="0 0 800 1000"
-                width="800"
-                height="1000"
-                xmlns="http://www.w3.org/2000/svg"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Alternative rendering method as fallback */}
-      <div className="border-t pt-4">
-        <details className="mt-4">
-          <summary className="text-sm font-medium text-gray-700 cursor-pointer hover:text-blue-600">
-            Alternative View (if preview doesn't work)
-          </summary>
-          <div className="mt-2 border border-gray-200 rounded p-4 bg-gray-50 overflow-auto max-h-64">
-            <iframe
-              srcDoc={`
-                <!DOCTYPE html>
-                <html>
-                <head>
-                  <meta charset="UTF-8">
-                  <style>
-                    body { margin: 0; padding: 20px; background: white; }
-                    svg { max-width: 100%; height: auto; }
-                  </style>
-                </head>
-                <body>
-                  ${processedSVG}
-                </body>
-                </html>
-              `}
-              width="100%"
-              height="300"
-              style={{ border: 'none', background: 'white' }}
-              title="SVG Preview"
+              dangerouslySetInnerHTML={{ __html: processedSVG }}
             />
           </div>
-        </details>
+        </div>
       </div>
 
       {/* Instructions */}

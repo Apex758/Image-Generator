@@ -210,15 +210,21 @@ export const SVGExportManager: React.FC<SVGExportManagerProps> = ({
       {/* Preview */}
       <div className="space-y-4">
         <h4 className="text-sm font-medium text-gray-900">Final Preview</h4>
-        <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 overflow-auto max-h-64">
-          <div
-            className="flex items-center justify-center"
-            style={{ transform: 'scale(0.6)', transformOrigin: 'center' }}
-          >
+        <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 overflow-auto max-h-96">
+          <div className="flex items-center justify-center min-h-[400px]">
             <div
-              className="shadow-sm rounded overflow-hidden bg-white"
-              dangerouslySetInnerHTML={{ __html: svgContent }}
-            />
+              className="svg-container"
+              style={{
+                transform: 'scale(0.4)', // Match live preview scale
+                transformOrigin: 'center top',
+                maxWidth: '100%'
+              }}
+            >
+              <div
+                className="shadow-sm rounded overflow-hidden bg-white"
+                dangerouslySetInnerHTML={{ __html: svgContent }}
+              />
+            </div>
           </div>
         </div>
       </div>
