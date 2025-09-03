@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useMutation } from 'react-query';
 import { Button } from '../ui/Button';
-import { Download, FileText, FileImage, ArrowLeft, CheckCircle } from 'lucide-react';
+import { Download, FileText, FileImage, ArrowLeft, CheckCircle, ZoomIn, ZoomOut } from 'lucide-react';
 import { svgApi, ExportSVGRequest } from '../../lib/api';
 
 interface SVGExportManagerProps {
@@ -52,6 +52,28 @@ export const SVGExportManager: React.FC<SVGExportManagerProps> = ({
   const [selectedFormat, setSelectedFormat] = useState<'pdf' | 'docx' | 'png' | ''>('');
   const [filename, setFilename] = useState('worksheet');
   const [exportedFiles, setExportedFiles] = useState<string[]>([]);
+  const [previewScale, setPreviewScale] = useState(0.5);
+
+  // Add the cleanSVGContent function from SVGPreview
+  const cleanSVGContent = (svgString: string): string => {
+    let content = svgString;
+    content = content.replace(/<\?xml[^>]*\?>/g, '');
+    if (!content.includes('xmlns="http://www.w3.org/2000/svg"')) {
+      content = content.replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg"');
+    }
+    content = content.replace(/ns0:/g, '');
+    content = content.replace(/xmlns:ns0="[^"]*"/g, '');
+    if (!content.includes('viewBox=')) {
+      const widthMatch = content.match(/width="([^"]+)"/);
+      const heightMatch = content.match(/height="([^"]+)"/);
+      if (widthMatch && heightMatch) {
+        const width = parseInt(widthMatch[1]) || 800;
+        const height = parseInt(heightMatch[1]) || 600;
+        content = content.replace('<svg', `<svg viewBox="0 0 ${width} ${height}"`);
+      }
+    }
+    return content;
+  };
 
   const exportMutation = useMutation(
     (request: ExportSVGRequest) => svgApi.export(request),
@@ -209,20 +231,45 @@ export const SVGExportManager: React.FC<SVGExportManagerProps> = ({
 
       {/* Preview */}
       <div className="space-y-4">
-        <h4 className="text-sm font-medium text-gray-900">Final Preview</h4>
-        <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 overflow-auto max-h-96">
+        <div className="flex items-center justify-between">
+          <h4 className="text-sm font-medium text-gray-900">Final Preview</h4>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPreviewScale(prev => Math.max(prev - 0.1, 0.3))}
+              disabled={previewScale <= 0.3}
+            >
+              <ZoomOut className="h-4 w-4" />
+            </Button>
+            <span className="text-sm text-gray-600 min-w-[4rem] text-center">
+              {Math.round(previewScale * 100)}%
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPreviewScale(prev => Math.min(prev + 0.1, 1.2))}
+              disabled={previewScale >= 1.2}
+            >
+              <ZoomIn className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+        <div className="border border-gray-200 rounded-lg p-4 bg-white overflow-auto">
           <div className="flex items-center justify-center min-h-[400px]">
             <div
               className="svg-container"
               style={{
-                transform: 'scale(0.4)', // Match live preview scale
+                transform: `scale(${previewScale})`,
                 transformOrigin: 'center top',
+                transition: 'transform 0.2s ease',
                 maxWidth: '100%'
               }}
             >
               <div
-                className="shadow-sm rounded overflow-hidden bg-white"
-                dangerouslySetInnerHTML={{ __html: svgContent }}
+                className="inline-block shadow-lg rounded-lg overflow-hidden bg-white"
+                style={{ maxWidth: '100%', height: 'auto' }}
+                dangerouslySetInnerHTML={{ __html: cleanSVGContent(svgContent) }}
               />
             </div>
           </div>

@@ -1546,9 +1546,6 @@ def generate_layout1_template_with_wordbank(num_questions: int, subject: str, gr
   <text x="{margin + 20}" y="{page2_activity_y + 20}" class="small">Draw or write about what you learned from this image:</text>
   <rect x="{margin + 20}" y="{page2_activity_y + 30}" width="{content_width - 40}" height="{activity_height - 30}" fill="none" stroke="#bdc3c7" stroke-width="1" stroke-dasharray="3,3"/>
   
-  <!-- Additional space for more activities -->
-  <text x="{margin + 20}" y="{page2_activity_y + activity_height + 20}" class="instruction">Additional Questions or Notes:</text>
-  <rect x="{margin + 20}" y="{page2_activity_y + activity_height + 40}" width="{content_width - 40}" height="100" fill="none" stroke="#bdc3c7" stroke-width="1" stroke-dasharray="3,3"/>
 '''
         
         # Page 2 footer
